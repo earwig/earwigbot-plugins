@@ -71,6 +71,8 @@ Bot Tasks
 
 - **drn_clerkbot**: clerks the
   [dispute resolution noticeboard](http://en.wikipedia.org/wiki/WP:DRN),
-  updating case statuses, building a chart, and notifying users.
+  updating case statuses, building a chart, and notifying users. Takes multiple
+  config values, including MySQL database info. A script to create the database
+  is in `tasks/schema/drn_clerkbot.sql`.
 
 - **image_display_resize**: resizes upscaled portraits in infoboxes.
