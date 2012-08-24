@@ -30,7 +30,7 @@ class Praise(Command):
         try:
             self.praises = self.config.commands[self.name]["praises"]
         except KeyError:
-            self.praises = []
+            self.praises = {}
 
     def check(self, data):
         check = data.command == "praise" or data.command in self.praises

@@ -27,8 +27,8 @@ import git
 from earwigbot.commands import Command
 
 class Git(Command):
-    """Commands to interface with the bot's git repository; use '!git' for a
-    sub-command list."""
+    """Commands to interface with configurable git repositories; use '!git' for
+    a sub-command list."""
     name = "git"
 
     def setup(self):
