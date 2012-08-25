@@ -696,7 +696,7 @@ class DRNClerkBot(Task):
 
     def compile_chart(self, conn):
         """Actually generate the chart from the database."""
-        chart = "{{" + self.tl_chart_header + "|small={{{small|}}}}}\n"
+        chart = "{{" + self.tl_chart_header + "|small={{{small|}}}|collapsed={{{collapsed|}}}}}\n"
         query = "SELECT * FROM cases WHERE case_status != ?"
         with conn.cursor(oursql.DictCursor) as cursor:
             cursor.execute(query, (self.STATUS_UNKNOWN,))
