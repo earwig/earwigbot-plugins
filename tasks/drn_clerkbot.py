@@ -46,6 +46,7 @@ class DRNClerkBot(Task):
     STATUS_REVIEW = 5
     STATUS_RESOLVED = 6
     STATUS_CLOSED = 7
+    STATUS_FAILED = 8
 
     ALIASES = {
         STATUS_NEW: ("",),
@@ -55,6 +56,7 @@ class DRNClerkBot(Task):
         STATUS_REVIEW: ("review",),
         STATUS_RESOLVED: ("resolved", "resolve"),
         STATUS_CLOSED: ("closed", "close"),
+        STATUS_FAILED: ("failed", "fail"),
     }
 
     def setup(self):
@@ -312,7 +314,8 @@ class DRNClerkBot(Task):
             notices = self.clerk_stale_case(case, newsigs)
         elif case.status == self.STATUS_REVIEW:
             notices = self.clerk_review_case(case)
-        elif case.status in [self.STATUS_RESOLVED, self.STATUS_CLOSED]:
+        elif case.status in [self.STATUS_RESOLVED, self.STATUS_CLOSED,
+                             self.STATUS_FAILED]:
             self.clerk_closed_case(case, signatures)
         self.save_case_updates(conn, case, volunteers, signatures, storedsigs)
         return notices
