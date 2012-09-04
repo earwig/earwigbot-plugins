@@ -41,6 +41,7 @@ class AFCCopyvios(Task):
         self.ignore_list = cfg.get("ignoreList", [])
         self.min_confidence = cfg.get("minConfidence", 0.5)
         self.max_queries = cfg.get("maxQueries", 10)
+        self.max_time = cfg.get("maxTime", 150)
         self.cache_results = cfg.get("cacheResults", False)
         default_summary = "Tagging suspected [[WP:COPYVIO|copyright violation]] of {url}."
         self.summary = self.make_summary(cfg.get("summary", default_summary))
@@ -82,7 +83,8 @@ class AFCCopyvios(Task):
             return
 
         self.logger.info(u"Checking [[{0}]]".format(title))
-        result = page.copyvio_check(self.min_confidence, self.max_queries)
+        result = page.copyvio_check(self.min_confidence, self.max_queries,
+                                    self.max_time)
         url = result.url
         orig_conf = "{0}%".format(round(result.confidence * 100, 2))
 
