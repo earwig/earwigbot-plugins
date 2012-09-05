@@ -154,7 +154,7 @@ class AFCCopyvios(Task):
         config, which is ``False`` by default.
         """
         pageid = page.pageid
-        hash = sha256(page.get()).hexdigest()
+        hash = sha256(page.get().encode("utf8")).hexdigest()
         query1 = "SELECT 1 FROM cache WHERE cache_id = ?"
         query2 = "DELETE FROM cache WHERE cache_id = ?"
         query3 = "INSERT INTO cache VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?)"
