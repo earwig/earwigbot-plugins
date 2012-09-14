@@ -43,7 +43,6 @@ class DRNClerkBot(Task):
     STATUS_OPEN = 2
     STATUS_STALE = 3
     STATUS_NEEDASSIST = 4
-    STATUS_REVIEW = 5
     STATUS_RESOLVED = 6
     STATUS_CLOSED = 7
     STATUS_FAILED = 8
@@ -52,8 +51,7 @@ class DRNClerkBot(Task):
         STATUS_NEW: ("",),
         STATUS_OPEN: ("open", "active", "inprogress"),
         STATUS_STALE: ("stale",),
-        STATUS_NEEDASSIST: ("needassist", "relist", "relisted"),
-        STATUS_REVIEW: ("review",),
+        STATUS_NEEDASSIST: ("needassist", "review", "relist", "relisted"),
         STATUS_RESOLVED: ("resolved", "resolve"),
         STATUS_CLOSED: ("closed", "close"),
         STATUS_FAILED: ("failed", "fail"),
@@ -312,8 +310,6 @@ class DRNClerkBot(Task):
             notices = self.clerk_needassist_case(case, volunteers, newsigs)
         elif case.status == self.STATUS_STALE:
             notices = self.clerk_stale_case(case, newsigs)
-        elif case.status == self.STATUS_REVIEW:
-            notices = self.clerk_review_case(case)
         elif case.status in [self.STATUS_RESOLVED, self.STATUS_CLOSED,
                              self.STATUS_FAILED]:
             self.clerk_closed_case(case, signatures)
@@ -342,10 +338,10 @@ class DRNClerkBot(Task):
         """Clerk an open case (has been edited by a reviewer).
 
         The case will be set to "needassist" if 15,000 bytes have been added
-        since a volunteer last edited, "stale" if no edits have occured in two
-        days, or "review" if it has been open for over four days.
+        since a volunteer last edited or if it has been open for over seven
+        days, or "stale" if no edits at all have occurred in two days.
         """
-        if self.check_for_review(case):
+        if self.check_for_needassist(case):
             return []
         if len(case.body) - case.last_volunteer_size > 15000:
             self.update_status(case, self.STATUS_NEEDASSIST)
@@ -357,38 +353,19 @@ class DRNClerkBot(Task):
         return []
 
     def clerk_needassist_case(self, case, volunteers, newsigs):
-        """Clerk a "needassist" case (no volunteer edits in 15,000 bytes).
+        """Clerk a "needassist" case (no volunteers in 15kb or >= 7 days old).
 
-        The case will be set to "open" if a volunteer edits, or "review" if it
-        has been open for over four days.
-        """
-        if self.check_for_review(case):
-            return []
-        if any([editor in volunteers for (editor, timestamp) in newsigs]):
-            self.update_status(case, self.STATUS_OPEN)
-        return []
-
-    def clerk_stale_case(self, case, newsigs):
-        """Clerk a stale case (no edits in two days).
-
-        The case will be set to "open" if anyone edits, or "review" if it has
-        been open for over four days.
-        """
-        if self.check_for_review(case):
-            return []
-        if newsigs:
-            self.update_status(case, self.STATUS_OPEN)
-        return []
-
-    def clerk_review_case(self, case):
-        """Clerk a "review" case (open for more than four days).
-
-        A message will be set to the "very old notifiee", which is generally
-        [[User talk:Szhang (WMF)]], if the case has been open for more than
-        five days.
+        The case will be set to "open" if a volunteer edits and the case is
+        less than a week old. A message will be set to the "very old notifiee",
+        which is generally [[User talk:Szhang (WMF)]], if the case has been
+        open for more than ten days.
         """
         age = (datetime.utcnow() - case.file_time).total_seconds()
-        if age > 60 * 60 * 24 * 5:
+        if age <= 60 * 60 * 24 * 7:
+            if any([editor in volunteers for (editor, timestamp) in newsigs]):
+                self.update_status(case, self.STATUS_OPEN)
+
+        elif age > 60 * 60 * 24 * 10:
             if not case.very_old_notified:
                 tmpl = self.tl_notify_stale
                 title = case.title.replace("|", "&#124;")
@@ -400,6 +377,19 @@ class DRNClerkBot(Task):
                 log = msg.format(case.id, self.very_old_title, template)
                 self.logger.debug(log)
                 return [notice]
+
+        return []
+
+    def clerk_stale_case(self, case, newsigs):
+        """Clerk a stale case (no edits in two days).
+
+        The case will be set to "open" if anyone edits, or "needassist" if it
+        has been open for over seven days.
+        """
+        if self.check_for_needassist(case):
+            return []
+        if newsigs:
+            self.update_status(case, self.STATUS_OPEN)
         return []
 
     def clerk_closed_case(self, case, signatures):
@@ -432,11 +422,11 @@ class DRNClerkBot(Task):
             case.archived = True
             self.logger.debug(u"    {0}: archived case".format(case.id))
 
-    def check_for_review(self, case):
-        """Check whether a case is old enough to be set to "review"."""
+    def check_for_needassist(self, case):
+        """Check whether a case is old enough to be set to "needassist"."""
         age = (datetime.utcnow() - case.file_time).total_seconds()
-        if age > 60 * 60 * 24 * 4:
-            self.update_status(case, self.STATUS_REVIEW)
+        if age > 60 * 60 * 24 * 7:
+            self.update_status(case, self.STATUS_NEEDASSIST)
             return True
         return False
 
@@ -728,7 +718,7 @@ class DRNClerkBot(Task):
         return row + "|sm={{{small|}}}}}\n"
 
     def format_time(self, dt):
-        """Return a string telling the time since datetime occured."""
+        """Return a string telling the time since datetime occurred."""
         parts = [("year", 31536000), ("day", 86400), ("hour", 3600)]
         seconds = int((datetime.utcnow() - dt).total_seconds())
         msg = []
