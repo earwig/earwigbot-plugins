@@ -98,25 +98,40 @@ class AFCCopyvios(Task):
                 msg = u"A violation was detected in [[{0}]], but couldn't be confirmed."
                 msg += u" It may have just been edited (best: {1} at {2} -> {3} confidence)"
                 self.logger.info(msg.format(title, url, orig_conf, new_conf))
+                self.log_processed(pageid)
+                return
 
             safeurl = quote(url.encode("utf8"), safe="/:").decode("utf8")
             content = page.get()
             template = u"\{\{{0}|url={1}|confidence={2}\}\}\n"
             template = template.format(self.template, safeurl, new_conf)
             newtext = template + content
-            if "{url}" in self.summary:
-                page.edit(newtext, self.summary.format(url=url))
-            else:
-                page.edit(newtext, self.summary)
+            # if "{url}" in self.summary:
+            #     page.edit(newtext, self.summary.format(url=url))
+            # else:
+            #     page.edit(newtext, self.summary)
             msg = u"Found violation: [[{0}]] -> {1} ({2} confidence)"
             self.logger.info(msg.format(title, url, new_conf))
+            self._trial_reporter(True, url, new_conf, result.queries, result.time)
         else:
             msg = u"No violations detected in [[{0}]] (best: {1} at {2} confidence)"
             self.logger.info(msg.format(title, url, orig_conf))
+            self._trial_reporter(False, url, orig_conf, result.queries, result.time)
 
         self.log_processed(pageid)
         if self.cache_results:
             self.cache_result(page, result)
+
+    def _trial_reporter(self, violation, url, conf, queries, time):
+        data = u"\n-" * 80 + u"\n"
+        data += u"[[{0}]]\n".format(title)
+        data += u"Violation?   {0}\n".format("***YES***" if violation else "No")
+        data += u"Confidence:  {0}\n".format(conf)
+        data += u"Best match:  {0}\n".format(url)
+        data += u"Num queries: {0}\n".format(queries)
+        data += u"Time:        {0}\n".format(time)
+        with open("/home/earwig/public_html/copyvio_bot_trial.txt", "a") as fp:
+            fp.write(data.encode("utf8"))
 
     def has_been_processed(self, pageid):
         """Returns True if pageid was processed before, otherwise False."""
