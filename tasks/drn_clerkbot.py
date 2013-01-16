@@ -69,6 +69,7 @@ class DRNClerkBot(Task):
         self.volunteer_title = cfg.get("volunteers",
                                        "Wikipedia:Dispute resolution noticeboard/Volunteering")
         self.very_old_title = cfg.get("veryOldTitle", "User talk:Szhang (WMF)")
+        self.notify_stale_cases = cf.get("notifyStaleCases", False)
 
         clerk_summary = "Updating case."
         notify_summary = "Notifying user regarding [[WP:DRN|dispute resolution noticeboard]] case."
@@ -378,7 +379,7 @@ class DRNClerkBot(Task):
                 self.update_status(case, self.STATUS_OPEN)
 
         elif age > 60 * 60 * 24 * 10:
-            if not case.very_old_notified:
+            if not case.very_old_notified and self.notify_stale_cases:
                 tmpl = self.tl_notify_stale
                 title = case.title.replace("|", "&#124;")
                 template = "{{subst:" + tmpl + "|" + title + "}}"
