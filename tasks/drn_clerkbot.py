@@ -68,7 +68,7 @@ class DRNClerkBot(Task):
         self.volunteer_title = cfg.get("volunteers",
                                        "Wikipedia:Dispute resolution noticeboard/Volunteering")
         self.very_old_title = cfg.get("veryOldTitle", "User talk:Szhang (WMF)")
-        self.notify_stale_cases = cf.get("notifyStaleCases", False)
+        self.notify_stale_cases = cfg.get("notifyStaleCases", False)
 
         clerk_summary = "Updating $3 case$4."
         notify_summary = "Notifying user regarding [[WP:DRN|dispute resolution noticeboard]] case."
