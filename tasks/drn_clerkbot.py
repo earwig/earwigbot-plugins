@@ -427,12 +427,16 @@ class DRNClerkBot(Task):
         if closed_age > 60 * 60 * 24 and modify_age > 60 * 60 * 24:
             arch_top = self.tl_archive_top
             arch_bottom = self.tl_archive_bottom
-            reg = "<!-- \[\[User:DoNotArchiveUntil\]\] .*? -->(<!-- .*? -->)?"
-            if re.search(reg, case.body):
-                case.body = re.sub("\{\{" + arch_top + "\}\}", "", case.body)
-                case.body = re.sub(reg, "{{" + arch_top + "}}", case.body)
-            if not re.search(arch_bottom + "\s*\}\}\s*\Z", case.body):
-                case.body += "\n{{" + arch_bottom + "}}"
+            reg = r"<!-- \[\[User:DoNotArchiveUntil\]\] .*? -->(<!-- .*? -->)?"
+            if re.search(r"\{\{\s*" + arch_top, case.body):
+                if re.search(reg, case.body):
+                    case.body = re.sub(reg, "", case.body)
+            else:
+                if re.search(reg, case.body):
+                    case.body = re.sub(r"\{\{" + arch_top + r"\}\}", "", case.body)
+                    case.body = re.sub(reg, "{{" + arch_top + "}}", case.body)
+                if not re.search(arch_bottom + r"\s*\}\}\s*\Z", case.body):
+                    case.body += "\n{{" + arch_bottom + "}}"
             case.archived = True
             self.logger.debug(u"    {0}: archived case".format(case.id))
 
