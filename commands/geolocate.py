@@ -55,7 +55,7 @@ class Geolocate(Command):
             try:
                 address = gethostbyname(data.host)
             except socket_error:
-                msg = "your hostname, \x0302{0}\x0F, is not an IP address!"
+                msg = "Your hostname, \x0302{0}\x0F, is not an IP address!"
                 self.reply(data, msg.format(data.host))
                 return
         if not self.is_ip(address):
