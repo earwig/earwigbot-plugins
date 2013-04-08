@@ -58,7 +58,6 @@ class Geolocate(Command):
                 msg = "your hostname, \x0302{0}\x0F, is not an IP address!"
                 self.reply(data, msg.format(data.host))
                 return
-        address = data.args[0]
         if not self.is_ip(address):
             msg = "\x0302{0}\x0F is not an IP address!"
             self.reply(data, msg.format(address))
