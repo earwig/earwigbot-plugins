@@ -45,7 +45,7 @@ class Geolocate(Command):
         if not self.key:
             msg = 'I need an API key for http://ipinfodb.com/ stored as \x0303config.commands["{0}"]["apiKey"]\x0F.'
             log = 'Need an API key for http://ipinfodb.com/ stored as config.commands["{0}"]["apiKey"]'
-            self.reply(data, msg.format(self.name) + ".")
+            self.reply(data, msg.format(self.name))
             self.logger.error(log.format(self.name))
             return
 
