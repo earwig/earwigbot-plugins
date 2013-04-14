@@ -60,9 +60,9 @@ class Weather(Command):
         query = urlopen(url.format(self.key, location)).read()
         res = loads(query)
 
-        if "error" in res:
+        if "error" in res["response"]:
             try:
-                desc = res["error"]["description"]
+                desc = res["response"]["error"]["description"]
                 desc = desc[0].upper() + des[1:]
                 if desc[-1] not in (".", "!", "?"):
                     desc += "."
@@ -77,12 +77,12 @@ class Weather(Command):
         elif "results" in res["response"]:
             results = []
             for place in res["response"]["results"]:
-                extra = place["state" if place["state"] else "country_iso3166"]
+                extra = place["state" if place["state"] else "country"]
                 results.append("{0}, {1}".format(place["city"], extra))
             if len(results) > 21:
                 extra = len(results) - 20
-                results = "; ".join(results[:20])
-                msg = "Did you mean: {0} ({1} others)?".format(results, extra)
+                res = "; ".join(results[:20])
+                msg = "Did you mean: {0}... ({1} others)?".format(res, extra)
             else:
                 msg = "Did you mean: {0}?".format("; ".join(results))
             self.reply(data, msg)
@@ -103,13 +103,13 @@ class Weather(Command):
         wind = "{0} {1} mph".format(wind_dir, data["wind_mph"])
         if float(data["wind_gust_mph"]) > float(data["wind_mph"]):
             wind += " ({0} mph gusts)".format(data["wind_gust_mph"])
-        precip_today = data["precip_today_in"]
-        precip_hour = data["precip_1hr_in"]
 
-        msg = "\x02{0}\x0F: {1} {2}; {3}°F ({4}°C); {5} humidity; wind {6}; "
-        msg += "{7}″ precipitation today ({8}″ past hour)"
-        msg = msg.format(place, icon, weather, temp_f, temp_c, humidity, wind,
-                         precip_today, precip_hour)
+        msg = "\x02{0}\x0F: {1} {2}; {3}°F ({4}°C); {5} humidity; wind {6}"
+        msg = msg.format(place, icon, weather, temp_f, temp_c, humidity, wind)
+        if data["precip_today_in"] and float(data["precip_today_in"]) > 0:
+            msg += "; {7}″ precipitation today".format(data["precip_today_in"])
+            if data["precip_1hr_in"] and float(data["precip_1hr_in"]) > 0:
+                msg += " ({8}″ past hour)".format(data["precip_1hr_in"])
         return msg
 
     def get_icon(self, condition):
