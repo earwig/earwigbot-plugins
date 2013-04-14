@@ -37,14 +37,14 @@ class Weather(Command):
             self.key = self.config.commands[self.name]["apiKey"]
         except KeyError:
             self.key = None
-            addr = "http://www.wunderground.com/weather/api/"
+            addr = "http://wunderground.com/weather/api/"
             config = 'config.commands["{0}"]["apiKey"]'.format(self.name)
             log = "Cannot use without an API key from {0} stored as {1}"
             self.logger.warn(log.format(addr, config))
 
     def process(self, data):
         if not self.key:
-            addr = "http://www.wunderground.com/weather/api/"
+            addr = "http://wunderground.com/weather/api/"
             config = 'config.commands["{0}"]["apiKey"]'.format(self.name)
             msg = "I need an API key from {0} stored as \x0303{1}\x0F."
             log = "Need an API key from {0} stored as {1}"
@@ -88,7 +88,7 @@ class Weather(Command):
     def format_weather(self, data):
         """Format the weather (as dict *data*) to be sent through IRC."""
         place = data["display_location"]["full"]
-        icon = self.get_icon[data["icon"]]
+        icon = self.get_icon(data["icon"])
         weather = data["weather"]
         temp_f, temp_c = data["temp_f"], data["temp_c"]
         humidity = data["relative_humidity"]
@@ -97,6 +97,7 @@ class Weather(Command):
             wind += " ({0} mph gusts)".format(data["wind_gust_mph"])
         precip_today = data["precip_today_in"]
         precip_hour = data["precip_1hr_in"]
+
         msg = "\x02{0}\x0F: {1} {2}; {3}°F ({4}°C); {5} humidity; wind {6}; "
         msg += "{7}″ precipitation today ({8}″ past hour)"
         msg = msg.format(place, icon, weather, temp_f, temp_c, humidity, wind,
