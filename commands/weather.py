@@ -63,7 +63,7 @@ class Weather(Command):
         if "error" in res["response"]:
             try:
                 desc = res["response"]["error"]["description"]
-                desc = desc[0].upper() + des[1:]
+                desc = desc[0].upper() + desc[1:]
                 if desc[-1] not in (".", "!", "?"):
                     desc += "."
             except (KeyError, IndexError):
