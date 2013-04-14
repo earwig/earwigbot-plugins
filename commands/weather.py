@@ -93,7 +93,7 @@ class Weather(Command):
         temp_f, temp_c = data["temp_f"], data["temp_c"]
         humidity = data["relative_humidity"]
         wind = "{0} {1} mph".format(data["wind_dir"], data["wind_mph"])
-        if int(data["wind_gust_mph"]) > int(data["wind_mph"]):
+        if float(data["wind_gust_mph"]) > float(data["wind_mph"]):
             wind += " ({0} mph gusts)".format(data["wind_gust_mph"])
         precip_today = data["precip_today_in"]
         precip_hour = data["precip_1hr_in"]
