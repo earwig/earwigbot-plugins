@@ -107,9 +107,9 @@ class Weather(Command):
         msg = "\x02{0}\x0F: {1} {2}; {3}°F ({4}°C); {5} humidity; wind {6}"
         msg = msg.format(place, icon, weather, temp_f, temp_c, humidity, wind)
         if data["precip_today_in"] and float(data["precip_today_in"]) > 0:
-            msg += "; {7}″ precipitation today".format(data["precip_today_in"])
+            msg += "; {0}″ precipitation today".format(data["precip_today_in"])
             if data["precip_1hr_in"] and float(data["precip_1hr_in"]) > 0:
-                msg += " ({8}″ past hour)".format(data["precip_1hr_in"])
+                msg += " ({0}″ past hour)".format(data["precip_1hr_in"])
         return msg
 
     def get_icon(self, condition):
