@@ -63,7 +63,7 @@ class Weather(Command):
         if "error" in res:
             try:
                 desc = res["error"]["description"]
-                desc[0] = desc[0].upper()
+                desc = desc[0].upper() + des[1:]
                 if desc[-1] not in (".", "!", "?"):
                     desc += "."
             except (KeyError, IndexError):
@@ -79,7 +79,12 @@ class Weather(Command):
             for place in res["response"]["results"]:
                 extra = place["state" if place["state"] else "country_iso3166"]
                 results.append("{0}, {1}".format(place["city"], extra))
-            msg = "Did you mean: {0}?".format("; ".join(results))
+            if len(results) > 21:
+                extra = len(results) - 20
+                results = "; ".join(results[:20])
+                msg = "Did you mean: {0} ({1} others)?".format(results, extra)
+            else:
+                msg = "Did you mean: {0}?".format("; ".join(results))
             self.reply(data, msg)
 
         else:
@@ -92,7 +97,10 @@ class Weather(Command):
         weather = data["weather"]
         temp_f, temp_c = data["temp_f"], data["temp_c"]
         humidity = data["relative_humidity"]
-        wind = "{0} {1} mph".format(data["wind_dir"], data["wind_mph"])
+        wind_dir = data["wind_dir"]
+        if wind_dir in ("North", "South", "East", "West"):
+            wind_dir = wind_dir.lower()
+        wind = "{0} {1} mph".format(wind_dir, data["wind_mph"])
         if float(data["wind_gust_mph"]) > float(data["wind_mph"]):
             wind += " ({0} mph gusts)".format(data["wind_gust_mph"])
         precip_today = data["precip_today_in"]
