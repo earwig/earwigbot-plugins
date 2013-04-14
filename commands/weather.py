@@ -60,7 +60,7 @@ class Weather(Command):
                 msg = " ".join(("Where do you want the weather of? You can",
                                 "set a default with '!{0} default City,",
                                 "State' (or 'City, Country' if non-US)."))
-                self.reply(data, msg)
+                self.reply(data, msg.format(data.command))
                 return
         elif data.args[0] == "default":
             if data.args[1:]:
@@ -80,7 +80,7 @@ class Weather(Command):
             location = " ".join(data.args)
 
         url = "http://api.wunderground.com/api/{0}/conditions/q/{1}.json"
-        location = quote("_".join(location), safe="")
+        location = quote(location, safe="")
         query = urlopen(url.format(self.key, location)).read()
         res = loads(query)
 
