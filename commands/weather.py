@@ -29,7 +29,7 @@ from earwigbot.commands import Command
 class Weather(Command):
     """Get a weather forecast (via http://www.wunderground.com/)."""
     name = "weather"
-    commands = ["weather", "forecast", "temperature", "temp"]
+    commands = ["weather", "weat", "forecast", "temperature", "temp"]
 
     def setup(self):
         self.config.decrypt(self.config.commands, self.name, "apiKey")
@@ -51,12 +51,36 @@ class Weather(Command):
             self.reply(data, msg.format(addr, config))
             self.logger.error(log.format(addr, config))
             return
+
+        permdb = self.config.irc["permissions"]
         if not data.args:
-            self.reply(data, "Where do you want the weather of?")
+            if permdb.has_attr(data.host, "weather"):
+                location = permdb.get_attr(data.host, "weather")
+            else:
+                msg = " ".join(("Where do you want the weather of? You can",
+                                "set a default with '!{0} default City,",
+                                "State' (or 'City, Country' if non-US)."))
+                self.reply(data, msg)
+                return
+        elif data.args[0] == "default":
+            if data.args[1:]:
+                value = " ".join(data.args[1:])
+                permdb.set_attr(data.host, "weather", value)
+                msg = "\x0302{0}\x0F's default set to \x02{1}\x0F."
+                self.reply(data, msg.format(data.host, value))
+            else:
+                if permdb.has_attr(data.host, "weather"):
+                    value = permdb.get_attr(data.host, "weather")
+                    msg = "\x0302{0}\x0F's default is \x02{1}\x0F."
+                    self.reply(data, msg.format(data.host, value))
+                else:
+                    self.reply(data, "I need a value to set as your default.")
             return
+        else:
+            location = " ".join(data.args)
 
         url = "http://api.wunderground.com/api/{0}/conditions/q/{1}.json"
-        location = quote("_".join(data.args), safe="")
+        location = quote("_".join(location), safe="")
         query = urlopen(url.format(self.key, location)).read()
         res = loads(query)
 
@@ -69,24 +93,12 @@ class Weather(Command):
             except (KeyError, IndexError):
                 desc = "An unknown error occurred."
             self.reply(data, desc)
-
         elif "current_observation" in res:
             msg = self.format_weather(res["current_observation"])
             self.reply(data, msg)
-
         elif "results" in res["response"]:
-            results = []
-            for place in res["response"]["results"]:
-                extra = place["state" if place["state"] else "country"]
-                results.append("{0}, {1}".format(place["city"], extra))
-            if len(results) > 21:
-                extra = len(results) - 20
-                res = "; ".join(results[:20])
-                msg = "Did you mean: {0}... ({1} others)?".format(res, extra)
-            else:
-                msg = "Did you mean: {0}?".format("; ".join(results))
+            msg = self.format_ambiguous_result(res)
             self.reply(data, msg)
-
         else:
             self.reply(data, "An unknown error occurred.")
 
@@ -139,3 +151,15 @@ class Weather(Command):
             return icons[condition]
         except KeyError:
             return "?"
+
+    def format_ambiguous_result(self, res):
+        """Format a message when there are multiple possible results."""
+        results = []
+        for place in res["response"]["results"]:
+            extra = place["state" if place["state"] else "country"]
+            results.append("{0}, {1}".format(place["city"], extra))
+        if len(results) > 21:
+            extra = len(results) - 20
+            res = "; ".join(results[:20])
+            return "Did you mean: {0}... ({1} others)?".format(res, extra)
+        return "Did you mean: {0}?".format("; ".join(results))
