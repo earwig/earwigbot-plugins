@@ -19,7 +19,7 @@ class UrbanDictionary(Command):
             return
         q = ' '.join(data.args)
 
-        url = "http://api.urbandictionary.com/v0/define?term={}"
+        url = "http://api.urbandictionary.com/v0/define?term={0}"
         q = quote(q, safe="")
         query = urlopen(url.format(q)).read()
         res = loads(query)
