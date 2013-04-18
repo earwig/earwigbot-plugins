@@ -28,7 +28,9 @@ class UrbanDictionary(Command):
         if res['result_type'] == 'exact':
             definition = re.sub(r"\s+", " ", res['list'][0]['definition'])
             example = re.sub(r"\s+", " ", res['list'][0]['example'])
-            msg = '{0}; example: {1}'.format(definition, example)
+            if definition and definition[-1] not in (".", "!", "?"):
+                definition += "."
+            msg = '{0} \x02Example\x0F: {1}'.format(definition, example)
             self.reply(data, msg)
         elif res['result_type'] == 'fulltext':
             L = [i['word'] for i in res['list']]
