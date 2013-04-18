@@ -10,7 +10,7 @@ from urllib2 import urlopen
 from earwigbot.commands import Command
 
 class UrbanDictionary(Command):
-    """Get the real definition of a word."""
+    """Get the definition of a word using Urban Dictionary."""
     name = "urban"
     commands = ["dictt", "definee", "defne", "dct", "ud"]
 
@@ -32,5 +32,5 @@ class UrbanDictionary(Command):
             msg = 'Here are some close matches...: {0}'.format(', '.join(l))
             self.reply(data, msg)
         else:
-            self.reply(data, 'Sorry, no results found :(')
+            self.reply(data, 'Sorry, no results found.')
 
