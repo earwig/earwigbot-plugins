@@ -4,6 +4,7 @@
 #
 
 from json import loads
+import re
 from urllib import quote
 from urllib2 import urlopen
 
@@ -25,9 +26,9 @@ class UrbanDictionary(Command):
         query = urlopen(url.format(q)).read()
         res = loads(query)
         if res['result_type'] == 'exact':
-            definition = res['list'][0]['definition'].replace("\n", " ")
-            example = res['list'][0]['example'].replace("\n", " ")
-            msg = 'Definition: {0}; example: {1}'.format(definition, example)
+            definition = re.sub(r"\s+", " ", res['list'][0]['definition'])
+            example = re.sub(r"\s+", " ", res['list'][0]['example'])
+            msg = '{0}; example: {1}'.format(definition, example)
             self.reply(data, msg)
         elif res['result_type'] == 'fulltext':
             L = [i['word'] for i in res['list']]
