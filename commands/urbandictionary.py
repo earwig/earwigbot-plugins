@@ -12,15 +12,16 @@ from earwigbot.commands import Command
 class UrbanDictionary(Command):
     """Get the definition of a word using Urban Dictionary."""
     name = "urban"
-    commands = ["dictt", "definee", "defne", "dct", "ud"]
+    commands = ["urban", "urbandictionary", "dictt", "definee", "defne", "dct",
+                "ud"]
 
     def process(self, data):
         if not data.args:
+            self.reply(data, "What do you want to define?")
             return
-        q = ' '.join(data.args)
 
         url = "http://api.urbandictionary.com/v0/define?term={0}"
-        q = quote(q, safe="")
+        q = quote(' '.join(data.args), safe="")
         query = urlopen(url.format(q)).read()
         res = loads(query)
         if res['result_type'] == 'exact':
@@ -28,9 +29,8 @@ class UrbanDictionary(Command):
             msg = 'Definition: {definition}; example: {example}'.format(**defin)
             self.reply(data, msg)
         elif res['result_type'] == 'fulltext':
-            l = [i['word'] for i in res['list']]
-            msg = 'Here are some close matches...: {0}'.format(', '.join(l))
+            L = [i['word'] for i in res['list']]
+            msg = 'Here are some close matches...: {0}'.format(', '.join(L))
             self.reply(data, msg)
         else:
             self.reply(data, 'Sorry, no results found.')
-
