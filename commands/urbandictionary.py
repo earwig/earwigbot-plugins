@@ -30,7 +30,7 @@ class UrbanDictionary(Command):
             self.reply(data, msg)
         elif res['result_type'] == 'fulltext':
             L = [i['word'] for i in res['list']]
-            msg = 'Here are some close matches...: {0}'.format(', '.join(L))
+            msg = 'Here are some close matches: {0}.'.format(', '.join(L))
             self.reply(data, msg)
         else:
             self.reply(data, 'Sorry, no results found.')
