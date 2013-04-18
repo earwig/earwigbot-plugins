@@ -25,8 +25,9 @@ class UrbanDictionary(Command):
         query = urlopen(url.format(q)).read()
         res = loads(query)
         if res['result_type'] == 'exact':
-            defin = res['list'][0]
-            msg = 'Definition: {definition}; example: {example}'.format(**defin)
+            definition = res['list'][0]['definition'].replace("\n", " ")
+            example = res['list'][0]['example'].replace("\n", " ")
+            msg = 'Definition: {0}; example: {1}'.format(definition, example)
             self.reply(data, msg)
         elif res['result_type'] == 'fulltext':
             L = [i['word'] for i in res['list']]
