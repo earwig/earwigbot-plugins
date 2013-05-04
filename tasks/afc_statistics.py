@@ -65,7 +65,7 @@ class AFCStatistics(Task):
         # Templates used in chart generation:
         templates = cfg.get("templates", {})
         self.tl_header = templates.get("header", "AFC statistics/header")
-        self.tl_row = templates.get("row", "#invoke:AfC")
+        self.tl_row = templates.get("row", "#invoke:AfC|row")
         self.tl_footer = templates.get("footer", "AFC statistics/footer")
 
         # Connection data for our SQL database:
