@@ -26,6 +26,7 @@ import re
 from threading import RLock
 from time import mktime, sleep, time
 
+from mwparserfromhell import parse as mw_parse
 import oursql
 
 from earwigbot import exceptions
@@ -713,6 +714,7 @@ class DRNClerkBot(Task):
             case["volunteer_sortkey"] = int(mktime(case["case_volunteer_time"].timetuple()))
         data += "|mu={case_modify_user}|ms={modify_sortkey}|mt={modify_time}"
 
+        case["case_title"] = mw_parse(case["case_title"]).strip_code()
         title = case["case_title"].replace("_", " ").replace("|", "&#124;")
         case["title"] = title[:47] + "..." if len(title) > 50 else title
         case["file_time"] = self.format_time(case["case_file_time"])
