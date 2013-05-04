@@ -65,7 +65,7 @@ class AFCStatistics(Task):
         # Templates used in chart generation:
         templates = cfg.get("templates", {})
         self.tl_header = templates.get("header", "AFC statistics/header")
-        self.tl_row = templates.get("row", "AFC statistics/row")
+        self.tl_row = templates.get("row", "#invoke:AfC")
         self.tl_footer = templates.get("footer", "AFC statistics/footer")
 
         # Connection data for our SQL database:
@@ -170,7 +170,7 @@ class AFCStatistics(Task):
         'page' is a dict of page information, taken as a row from the page
         table, where keys are column names and values are their cell contents.
         """
-        row = u"{0}|s={page_status}|t={page_title}|h={page_short}|z={page_size}|"
+        row = u"{0}|s={page_status}|t={page_title}|z={page_size}|"
         if page["page_special_oldid"]:
             row += "sr={page_special_user}|sd={page_special_time}|si={page_special_oldid}|"
         row += "mr={page_modify_user}|md={page_modify_time}|mi={page_modify_oldid}"
@@ -344,17 +344,16 @@ class AFCStatistics(Task):
             self.logger.warn(msg)
             return
 
-        short = self.get_short_title(title)
         size = self.get_size(content)
         m_user, m_time, m_id = self.get_modify(pageid)
         s_user, s_time, s_id = self.get_special(pageid, chart)
         notes = self.get_notes(chart, content, m_time, s_user)
 
         query1 = "INSERT INTO row VALUES (?, ?)"
-        query2 = "INSERT INTO page VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        query2 = "INSERT INTO page VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         cursor.execute(query1, (pageid, chart))
-        cursor.execute(query2, (pageid, status, title, short, size, notes,
-                                m_user, m_time, m_id, s_user, s_time, s_id))
+        cursor.execute(query2, (pageid, status, title, size, notes, m_user,
+                                m_time, m_id, s_user, s_time, s_id))
 
     def update_page(self, cursor, pageid, title):
         """Update hook for when page is already in our database.
@@ -402,10 +401,9 @@ class AFCStatistics(Task):
             self.update_page_notes(cursor, result, pageid, notes)
 
     def update_page_title(self, cursor, result, pageid, title):
-        """Update the title and short_title of a page in our database."""
-        query = "UPDATE page SET page_title = ?, page_short = ? WHERE page_id = ?"
-        short = self.get_short_title(title)
-        cursor.execute(query, (title, short, pageid))
+        """Update the title of a page in our database."""
+        query = "UPDATE page SET page_title = ? WHERE page_id = ?"
+        cursor.execute(query, (title, pageid))
 
         msg = u"  {0}: title: {1} -> {2}"
         self.logger.debug(msg.format(pageid, result["page_title"], title))
@@ -576,18 +574,6 @@ class AFCStatistics(Task):
             content = re.sub(re_template, "", content, 1, re.S)
 
         return statuses
-
-    def get_short_title(self, title):
-        """Shorten a title so we can display it in a chart using less space.
-
-        Basically, this just means removing the "Wikipedia talk:Articles for
-        creation" part from the beginning. If it is longer than 50 characters,
-        we'll shorten it down to 47 and add an poor-man's ellipsis at the end.
-        """
-        short = re.sub("Wikipedia(\s*talk)?\:Articles\sfor\screation\/", "", title)
-        if len(short) > 50:
-            short = short[:47] + "..."
-        return short
 
     def get_size(self, content):
         """Return a page's size in a short, pretty format."""
