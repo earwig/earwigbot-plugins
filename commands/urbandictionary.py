@@ -11,7 +11,7 @@ from urllib2 import urlopen
 from earwigbot.commands import Command
 
 class UrbanDictionary(Command):
-    """Get the definition of a word using Urban Dictionary."""
+    """Get the definition of a word or phrase using Urban Dictionary."""
     name = "urban"
     commands = ["urban", "urbandictionary", "dictt", "definee", "defne", "dct",
                 "ud"]
