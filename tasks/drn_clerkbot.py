@@ -646,7 +646,7 @@ class DRNClerkBot(Task):
             target, template = notice.target, notice.template
             log = u"Trying to notify [[{0}]] with '{1}'"
             self.logger.debug(log.format(target, template))
-            page = site.get_page(target)
+            page = site.get_page(target, follow_redirects=True)
             if page.namespace == constants.NS_USER_TALK:
                 user = site.get_user(target.split(":", 1)[1])
                 if not user.exists and not user.is_ip:
