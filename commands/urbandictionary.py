@@ -36,6 +36,6 @@ class UrbanDictionary(Command):
         elif res['result_type'] == 'fulltext':
             L = [i['word'] for i in res['list']]
             msg = 'Here are some close matches: {0}.'
-            self.reply(data, msg.format(u", ".join(L).encode("utf8"))
+            self.reply(data, msg.format(u", ".join(L).encode("utf8")))
         else:
             self.reply(data, 'Sorry, no results found.')
