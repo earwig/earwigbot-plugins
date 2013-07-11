@@ -30,11 +30,12 @@ class UrbanDictionary(Command):
             example = re.sub(r"\s+", " ", res['list'][0]['example'])
             if definition and definition[-1] not in (".", "!", "?"):
                 definition += "."
-            msg = '{0} \x02Example\x0F: {1}'.format(definition, example)
+            msg = '{0} \x02Example\x0F: {1}'.format(definition.encode("utf8"),
+                                                    example.encode("utf8"))
             self.reply(data, msg)
         elif res['result_type'] == 'fulltext':
             L = [i['word'] for i in res['list']]
-            msg = 'Here are some close matches: {0}.'.format(', '.join(L))
-            self.reply(data, msg)
+            msg = 'Here are some close matches: {0}.'
+            self.reply(data, msg.format(u", ".join(L).encode("utf8"))
         else:
             self.reply(data, 'Sorry, no results found.')
