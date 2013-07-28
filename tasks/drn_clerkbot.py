@@ -244,6 +244,7 @@ class DRNClerkBot(Task):
                 self.logger.debug(log.format(id_, casename, status, f_user))
             else:
                 case.status = status
+                case.page = subpage
                 log = u"Read active case {0} ('{1}')".format(id_, casename)
                 self.logger.debug(log)
                 if case.title != casename:
