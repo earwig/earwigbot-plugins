@@ -84,12 +84,12 @@ class AFCStatus(Command):
 
             elif action.startswith("g13_e") or action.startswith("g13e"):
                 g13_eli = self.count_g13_eligible()
-                msg = "There are \x03{0}\x0F CSD:G13 eligible pages."
+                msg = "There are \x0305{0}\x0F CSD:G13-eligible pages."
                 self.reply(data, msg.format(g13_eli))
 
             elif action.startswith("g13_a") or action.startswith("g13a"):
                 g13_noms = self.count_g13_active()
-                msg = "There are \x03{0}\x0F active CSD:G13 nominations."
+                msg = "There are \x0305{0}\x0F active CSD:G13 nominations."
                 self.reply(data, msg.format(g13_noms))
 
             elif action.startswith("nocolor") or action == "n":
