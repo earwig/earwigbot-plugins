@@ -82,23 +82,23 @@ class AFCStatus(Command):
                 msg = "Aggregate is \x0305{0}\x0F (AfC {1})."
                 self.reply(data, msg.format(agg_num, aggregate))
 
-            elif action.startswith("g13_eligible") or action = "g13e":
+            elif action.startswith("g13_e") or action.startswith("g13e"):
                 g13_eli = self.count_g13_eligible()
-                msg = "There are \x03{0}\x0F G13 eligible pages."
+                msg = "There are \x03{0}\x0F CSD:G13 eligible pages."
                 self.reply(data, msg.format(g13_eli))
 
-            elif action.startswith("g13_active") or action = "g13a":
+            elif action.startswith("g13_a") or action.startswith("g13a"):
                 g13_noms = self.count_g13_active()
                 msg = "There are \x03{0}\x0F active CSD:G13 nominations."
                 self.reply(data, msg.format(g13_noms))
-                
+
             elif action.startswith("nocolor") or action == "n":
                 self.reply(data, self.get_status(color=False))
 
             else:
                 msg = "Unknown argument: \x0303{0}\x0F. Valid args are " +\
-                  "'subs', 'redirs', 'files', 'agg', 'nocolor', " +\
-                  "'g13_eligible', 'g13_active'."
+                      "'subs', 'redirs', 'files', 'agg', 'nocolor', " +\
+                      "'g13_eligible', 'g13_active'."
                 self.reply(data, msg.format(data.args[0]))
 
         else:
@@ -119,7 +119,7 @@ class AFCStatus(Command):
 
     def count_g13_eligible(self):
         """
-          Returns the number of G13 Eligible AfC Submissions (count of 
+          Returns the number of G13 Eligible AfC Submissions (count of
           Category:G13 eligible AfC submissions)
         """
         return self.site.get_category("G13 eligible AfC submissions").pages
@@ -129,9 +129,9 @@ class AFCStatus(Command):
           Returns the number of active CSD:G13 nominations ( count of
           Category:Candidates for speedy deletion as abandoned AfC submissions)
         """
-        cat_name = "Candidates for speedy deletion as abandoned AfC submissions"
-        return self.site.get_category(cat_name)
-        
+        catname = "Candidates for speedy deletion as abandoned AfC submissions"
+        return self.site.get_category(catname).pages
+
     def count_submissions(self):
         """Returns the number of open AFC submissions (count of CAT:PEND)."""
         # Subtract two for [[Wikipedia:Articles for creation/Redirects]] and
