@@ -123,7 +123,7 @@ class AFCCopyvios(Task):
             self.cache_result(page, result)
 
     def _trial_reporter(self, violation, url, conf, queries, time):
-        data = u"\n-" * 80 + u"\n"
+        data = u"\n" + ("-" * 80) + u"\n"
         data += u"[[{0}]]\n".format(title)
         data += u"Violation?   {0}\n".format("***YES***" if violation else "No")
         data += u"Confidence:  {0}\n".format(conf)
