@@ -130,7 +130,7 @@ class AFCCopyvios(Task):
         data += u"Best match:  {0}\n".format(url)
         data += u"Num queries: {0}\n".format(queries)
         data += u"Time:        {0}\n".format(time)
-        with open("/home/earwig/public_html/copyvio_bot_trial.txt", "a") as fp:
+        with open("/data/project/earwigbot/public_html/copyvio_bot_trial.txt", "a") as fp:
             fp.write(data.encode("utf8"))
 
     def has_been_processed(self, pageid):
