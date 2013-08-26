@@ -25,6 +25,7 @@ from os.path import expanduser
 from threading import Lock
 from urllib import quote
 
+import mwparserfromhell
 import oursql
 
 from earwigbot.tasks import Task
@@ -45,6 +46,9 @@ class AFCCopyvios(Task):
         self.cache_results = cfg.get("cacheResults", False)
         default_summary = "Tagging suspected [[WP:COPYVIO|copyright violation]] of {url}."
         self.summary = self.make_summary(cfg.get("summary", default_summary))
+        default_tags = [
+            "Db-g12", "Db-copyvio", "Copyvio", "Copyviocore" "Copypaste"]
+        self.tags = default_tags + cfg.get("tags", [])
 
         # Connection data for our SQL database:
         kwargs = cfg.get("sql", {})
@@ -81,6 +85,10 @@ class AFCCopyvios(Task):
             msg = u"Skipping check on already processed page [[{0}]]"
             self.logger.info(msg.format(title))
             return
+        elif self.is_tagged(page.get()):
+            msg = u"Skipping check on already tagged page [[{0}]]"
+            self.logger.info(msg.format(title))
+            return
 
         self.logger.info(u"Checking [[{0}]]".format(title))
         result = page.copyvio_check(self.min_confidence, self.max_queries,
@@ -92,12 +100,20 @@ class AFCCopyvios(Task):
             # Things can change in the minute that it takes to do a check.
             # Confirm that a violation still holds true:
             page.load()
+            if self.is_tagged(page.get()):
+                msg = u"A violation was detected in [[{0}]], but it was tagged"
+                msg += " by someone else while checking (best: {1} at {2} confidence)"
+                self.logger.info(msg.format(title, url, orig_conf))
+                self._trial_reporter(title, False, url, orig_conf, result.queries, result.time, msg)
+                self.log_processed(pageid)
+                return
             confirm = page.copyvio_compare(url, self.min_confidence)
             new_conf = "{0}%".format(round(confirm.confidence * 100, 2))
             if not confirm.violation:
                 msg = u"A violation was detected in [[{0}]], but couldn't be confirmed."
                 msg += u" It may have just been edited (best: {1} at {2} -> {3} confidence)"
                 self.logger.info(msg.format(title, url, orig_conf, new_conf))
+                self._trial_reporter(title, False, url, orig_conf, result.queries, result.time, msg)
                 self.log_processed(pageid)
                 return
 
@@ -112,26 +128,38 @@ class AFCCopyvios(Task):
             #     page.edit(newtext, self.summary)
             msg = u"Found violation: [[{0}]] -> {1} ({2} confidence)"
             self.logger.info(msg.format(title, url, new_conf))
-            self._trial_reporter(True, url, new_conf, result.queries, result.time)
+            self._trial_reporter(title, True, url, new_conf, result.queries, result.time, msg)
         else:
             msg = u"No violations detected in [[{0}]] (best: {1} at {2} confidence)"
             self.logger.info(msg.format(title, url, orig_conf))
-            self._trial_reporter(False, url, orig_conf, result.queries, result.time)
+            self._trial_reporter(title, False, url, orig_conf, result.queries, result.time, msg)
 
         self.log_processed(pageid)
         if self.cache_results:
             self.cache_result(page, result)
 
-    def _trial_reporter(self, violation, url, conf, queries, time):
+    def _trial_reporter(self, title, violation, url, conf, queries, time, msg):
+        from datetime import datetime
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
         data = u"\n" + ("-" * 80) + u"\n"
-        data += u"[[{0}]]\n".format(title)
+        data += u"[[{0}]] at {1}\n".format(title, date)
         data += u"Violation?   {0}\n".format("***YES***" if violation else "No")
         data += u"Confidence:  {0}\n".format(conf)
         data += u"Best match:  {0}\n".format(url)
         data += u"Num queries: {0}\n".format(queries)
         data += u"Time:        {0}\n".format(time)
+        data += u"Log message: {0}\n".format(msg)
         with open("/data/project/earwigbot/public_html/copyvio_bot_trial.txt", "a") as fp:
             fp.write(data.encode("utf8"))
+
+    def is_tagged(self, text):
+        """Return whether the text contains a copyvio check template."""
+        code = mwparserfromhell.parse(text)
+        for template in code.ifilter_templates():
+            for tag in self.tags:
+                if template.name.matches(tag):
+                    return True
+        return False
 
     def has_been_processed(self, pageid):
         """Returns True if pageid was processed before, otherwise False."""
