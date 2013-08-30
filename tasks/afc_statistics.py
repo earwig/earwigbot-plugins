@@ -228,28 +228,23 @@ class AFCStatistics(Task):
         self.untrack_page().
         """
         self.logger.debug("Updating tracked submissions")
-        query1 = "SELECT page_id, page_title, page_modify_oldid FROM page"
-        query2 = """SELECT page_latest, page_title, page_namespace FROM page
-                    WHERE page_id = ?"""
-        cursor.execute(query1)
+        query = """SELECT s.page_id, s.page_title, s.page_modify_oldid,
+            r.page_latest, r.page_title, r.page_namespace FROM page AS s
+            LEFT JOIN {0}_p.page AS r ON s.page_id = r.page_id"""
+        cursor.execute(query.format(self.site.name))
 
-        for pageid, title, oldid in cursor:
-            result = list(self.site.sql_query(query2, (pageid,)))
-            if not result:
+        for pageid, title, oldid, real_oldid, real_title, real_ns in cursor:
+            if not real_oldid:
                 self.untrack_page(cursor, pageid)
                 continue
-
-            real_oldid = result[0][0]
             if oldid != real_oldid:
                 msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
                 self.logger.debug(msg.format(title, pageid, oldid))
                 self.logger.debug("  {0} -> {1}".format(oldid, real_oldid))
-                base = result[0][1].decode("utf8").replace("_", " ")
-                ns = self.site.namespace_id_to_name(result[0][2])
+                real_title = real_title.decode("utf8").replace("_", " ")
+                ns = self.site.namespace_id_to_name(real_ns)
                 if ns:
-                    real_title = u":".join((ns, base))
-                else:
-                    real_title = base
+                    real_title = u":".join((ns, real_title))
                 try:
                     self.update_page(cursor, pageid, real_title)
                 except Exception:
