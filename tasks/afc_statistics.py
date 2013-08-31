@@ -93,6 +93,7 @@ class AFCStatistics(Task):
         try:
             self.site = self.bot.wiki.get_site()
             self.conn = oursql.connect(**self.conn_data)
+            self.revision_cache = {}
             try:
                 if action == "save":
                     self.save(kwargs)
@@ -483,14 +484,18 @@ class AFCStatistics(Task):
 
     def get_revision_content(self, revid, tries=1):
         """Get the content of a revision by ID from the API."""
+        if revid in self.revision_cache:
+            return self.revision_cache[revid]
         res = self.site.api_query(action="query", prop="revisions",
                                   revids=revid, rvprop="content")
         try:
-            return res["query"]["pages"].values()[0]["revisions"][0]["*"]
+            content = res["query"]["pages"].values()[0]["revisions"][0]["*"]
         except KeyError:
             if tries > 0:
                 sleep(5)
                 return self.get_revision_content(revid, tries=tries - 1)
+        self.revision_cache[revid] = content
+        return content
 
     def get_status_and_chart(self, content, namespace):
         """Determine the status and chart number of an AFC submission.
