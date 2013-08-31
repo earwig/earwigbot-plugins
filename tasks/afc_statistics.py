@@ -229,8 +229,9 @@ class AFCStatistics(Task):
         """
         self.logger.debug("Updating tracked submissions")
         query = """SELECT s.page_id, s.page_title, s.page_modify_oldid,
-            r.page_latest, r.page_title, r.page_namespace FROM page AS s
-            LEFT JOIN {0}_p.page AS r ON s.page_id = r.page_id"""
+                          r.page_latest, r.page_title, r.page_namespace
+                   FROM page AS s
+                   LEFT JOIN {0}_p.page AS r ON s.page_id = r.page_id"""
         cursor.execute(query.format(self.site.name))
 
         for pageid, title, oldid, real_oldid, real_title, real_ns in cursor:
@@ -260,22 +261,28 @@ class AFCStatistics(Task):
         self.ignore_list, we will track it with self.track_page().
         """
         self.logger.debug("Adding untracked pending submissions")
-        cursor.execute("SELECT page_id FROM page")
-        tracked = [i[0] for i in cursor.fetchall()]
+        query = """SELECT r.page_id, r.page_title, r.page_namespace
+                   FROM {0}_p.page AS r
+                   INNER JOIN {0}_p.categorylinks AS c ON r.page_id = c.cl_from
+                   LEFT JOIN page AS s ON r.page_id = s.page_id
+                   WHERE s.page_id IS NULL AND c.cl_to = ?"""
+        cursor.execute(query.format(self.site.name),
+                       (self.pending_cat.replace(" ", "_"),))
 
-        category = self.site.get_category(self.pending_cat)
-        for page in category.get_members():
-            title, pageid = page.title, page.pageid
+        for pageid, title, ns in cursor:
+            title = title.decode("utf8").replace("_", " ")
+            ns = self.site.namespace_id_to_name(ns)
+            if ns:
+                title = u":".join((ns, title))
             if title in self.ignore_list:
                 continue
-            if pageid not in tracked:
-                msg = u"Tracking page [[{0}]] (id: {1})".format(title, pageid)
-                self.logger.debug(msg)
-                try:
-                    self.track_page(cursor, pageid, title)
-                except Exception:
-                    e = u"Error tracking page [[{0}]] (id: {1})"
-                    self.logger.exception(e.format(title, pageid))
+            msg = u"Tracking page [[{0}]] (id: {1})".format(title, pageid)
+            self.logger.debug(msg)
+            try:
+                self.track_page(cursor, pageid, title)
+            except Exception:
+                e = u"Error tracking page [[{0}]] (id: {1})"
+                self.logger.exception(e.format(title, pageid))
 
     def delete_old(self, cursor):
         """Remove old submissions from the database.
@@ -432,7 +439,7 @@ class AFCStatistics(Task):
         s_user, s_time, s_id = self.get_special(pageid, chart)
         if s_id != result["page_special_oldid"]:
             cursor.execute(query2, (s_user, s_time, s_id, pageid))
-            msg = u"{0}: special: {1} / {2} / {3} -> {4} / {5} / {6}"
+            msg = u"  {0}: special: {1} / {2} / {3} -> {4} / {5} / {6}"
             msg = msg.format(pageid, result["page_special_user"],
                              result["page_special_time"],
                              result["page_special_oldid"], s_user, s_time, s_id)
