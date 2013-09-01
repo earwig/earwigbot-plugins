@@ -242,7 +242,8 @@ class AFCStatistics(Task):
                 continue
             msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
             self.logger.debug(msg.format(title, pageid, oldid))
-            self.logger.debug("  {0} -> {1}".format(oldid, real_oldid))
+            msg = u"  {0}: oldid: {1} -> {2}"
+            self.logger.debug(msg.format(pageid, oldid, real_oldid))
             real_title = real_title.decode("utf8").replace("_", " ")
             ns = self.site.namespace_id_to_name(real_ns)
             if ns:
