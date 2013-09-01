@@ -46,7 +46,6 @@ class AFCStatistics(Task):
     # Chart status number constants:
     CHART_NONE = 0
     CHART_PEND = 1
-    CHART_DRAFT = 2
     CHART_REVIEW = 3
     CHART_ACCEPT = 4
     CHART_DECLINE = 5
@@ -512,8 +511,6 @@ class AFCStatistics(Task):
 
         if "R" in statuses:
             status, chart = "r", self.CHART_REVIEW
-        elif "H" in statuses:
-            status, chart = "p", self.CHART_DRAFT
         elif "P" in statuses:
             status, chart = "p", self.CHART_PEND
         elif "T" in statuses:
@@ -536,10 +533,9 @@ class AFCStatistics(Task):
         re_has_templates = "\{\{[aA][fF][cC] submission\s*(\}\}|\||/)"
         re_template = "\{\{[aA][fF][cC] submission\s*(.*?)\}\}"
         re_remove_embed = "(\{\{[aA][fF][cC] submission\s*(.*?))\{\{(.*?)\}\}(.*?)\}\}"
-        valid = ["R", "H", "P", "T", "D"]
+        valid = ["R", "P", "T", "D"]
         subtemps = {
             "/reviewing": "R",
-            "/onhold": "H",
             "/pending": "P",
             "/draft": "T",
             "/declined": "D"
@@ -621,10 +617,7 @@ class AFCStatistics(Task):
             return self.get_create(pageid)
         elif chart == self.CHART_ACCEPT:
             search_for = None
-            search_not = ["R", "H", "P", "T", "D"]
-        elif chart == self.CHART_DRAFT:
-            search_for = "H"
-            search_not = []
+            search_not = ["R", "P", "T", "D"]
         elif chart == self.CHART_PEND:
             search_for = "P"
             search_not = []
@@ -633,7 +626,7 @@ class AFCStatistics(Task):
             search_not = []
         elif chart == self.CHART_DECLINE:
             search_for = "D"
-            search_not = ["R", "H", "P", "T"]
+            search_not = ["R", "P", "T"]
 
         query = """SELECT rev_user_text, rev_timestamp, rev_id
                    FROM revision WHERE rev_page = ? ORDER BY rev_id DESC"""
@@ -655,12 +648,8 @@ class AFCStatistics(Task):
                 return None, None, None
             statuses = self.get_statuses(content)
             matches = [s in statuses for s in search_not]
-            if search_for:
-                if search_for not in statuses or any(matches):
-                    return last
-            else:
-                if any(matches):
-                    return last
+            if any(matches) or (search_for and search_for not in statuses):
+                return last
             timestamp = datetime.strptime(ts, "%Y%m%d%H%M%S")
             last = (user.decode("utf8"), timestamp, revid)
 
@@ -722,7 +711,7 @@ class AFCStatistics(Task):
         if time_since_modify > max_time:
             notes += "|no=1"  # Submission hasn't been touched in over 4 days
 
-        if chart in [self.CHART_PEND, self.CHART_DRAFT] and s_user:
+        if chart == self.CHART_PEND and s_user:
             submitter = self.site.get_user(s_user)
             try:
                 if submitter.blockinfo:
