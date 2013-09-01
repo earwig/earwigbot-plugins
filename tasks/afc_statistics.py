@@ -26,6 +26,7 @@ from os.path import expanduser
 from threading import Lock
 from time import sleep
 
+import mwparserfromhell
 import oursql
 
 from earwigbot import exceptions
@@ -508,75 +509,43 @@ class AFCStatistics(Task):
         idea :P).
         """
         statuses = self.get_statuses(content)
-
-        if "R" in statuses:
-            status, chart = "r", self.CHART_REVIEW
-        elif "P" in statuses:
-            status, chart = "p", self.CHART_PEND
-        elif "T" in statuses:
-            status, chart = None, self.CHART_NONE
-        elif "D" in statuses:
-            status, chart = "d", self.CHART_DECLINE
-        else:
-            status, chart = None, self.CHART_NONE
-
         if namespace == wiki.NS_MAIN:
-            if not statuses:
-                status, chart = "a", self.CHART_ACCEPT
-            else:
-                status, chart = None, self.CHART_MISPLACE
-
-        return status, chart
+            if statuses:
+                return None, self.CHART_MISPLACE
+            return "a", self.CHART_ACCEPT
+        elif "R" in statuses:
+            return "r", self.CHART_REVIEW
+        elif "P" in statuses:
+            return "p", self.CHART_PEND
+        elif "T" in statuses:
+            return None, self.CHART_NONE
+        elif "D" in statuses:
+            return "d", self.CHART_DECLINE
+        return None, self.CHART_NONE
 
     def get_statuses(self, content):
         """Return a list of all AFC submission statuses in a page's text."""
-        re_has_templates = "\{\{[aA][fF][cC] submission\s*(\}\}|\||/)"
-        re_template = "\{\{[aA][fF][cC] submission\s*(.*?)\}\}"
-        re_remove_embed = "(\{\{[aA][fF][cC] submission\s*(.*?))\{\{(.*?)\}\}(.*?)\}\}"
-        valid = ["R", "P", "T", "D"]
-        subtemps = {
-            "/reviewing": "R",
-            "/pending": "P",
-            "/draft": "T",
-            "/declined": "D"
+        valid = ["P", "R", "T", "D"]
+        aliases = {
+            "submit": "P",
+            "afc submission/submit": "P",
+            "afc submission/reviewing": "R",
+            "afc submission/pending": "P",
+            "afc submission/draft": "T",
+            "afc submission/declined": "D"
         }
         statuses = []
-
-        while re.search(re_has_templates, content):
-            status = "P"
-            match = re.search(re_template, content, re.S)
-            if not match:
-                return statuses
-            temp = match.group(1)
-            limit = 0
-            while "{{" in temp and limit < 50:
-                content = re.sub(re_remove_embed, "\\1\\4}}", content, 1, re.S)
-                match = re.search(re_template, content, re.S)
-                temp = match.group(1)
-                limit += 1
-            params = temp.split("|")
-            try:
-                subtemp, params = params[0].strip(), params[1:]
-            except IndexError:
-                status = "P"
-                params = []
-            else:
-                if subtemp:
-                    status = subtemps.get(subtemp)
-                    params = []
-            for param in params:
-                param = param.strip().upper()
-                if "=" in param:
-                    key, value = param.split("=", 1)
-                    if key.strip() == "1":
-                        status = value if value in valid else "P"
-                        break
+        code = mwparserfromhell.parse(content)
+        for template in code.filter_templates():
+            name = template.name.strip().lower()
+            if name == "afc submission":
+                if template.has(1):
+                    status = template.get(1).value.strip().upper()
+                    statuses.append(status if status in valid else "P")
                 else:
-                    status = param if param in valid else "P"
-                    break
-            statuses.append(status)
-            content = re.sub(re_template, "", content, 1, re.S)
-
+                    statuses.append("P")
+            elif name in aliases:
+                statuses.append(aliases[name])
         return statuses
 
     def get_size(self, content):
