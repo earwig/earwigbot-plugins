@@ -23,7 +23,7 @@
 from hashlib import sha256
 from os.path import expanduser
 from threading import Lock
-from urllib import quote
+# from urllib import quote
 
 import mwparserfromhell
 import oursql
@@ -76,18 +76,24 @@ class AFCCopyvios(Task):
         """Detect copyvios in 'page' and add a note if any are found."""
         title = page.title
         if title in self.ignore_list:
-            msg = u"Skipping page in ignore list: [[{0}]]"
+            msg = u"Skipping [[{0}]], in ignore list"
             self.logger.info(msg.format(title))
             return
 
         pageid = page.pageid
         if self.has_been_processed(pageid):
-            msg = u"Skipping check on already processed page [[{0}]]"
+            msg = u"Skipping [[{0}]], already processed"
             self.logger.info(msg.format(title))
             return
-        elif self.is_tagged(page.get()):
-            msg = u"Skipping check on already tagged page [[{0}]]"
+        code = mwparserfromhell.parse(page.get())
+        if not self.is_pending(code):
+            msg = u"Skipping [[{0}]], not a pending submission"
             self.logger.info(msg.format(title))
+            return
+        tag = self.is_tagged(code)
+        if tag:
+            msg = u"Skipping [[{0}]], already tagged with '{1}'"
+            self.logger.info(msg.format(title, tag))
             return
 
         self.logger.info(u"Checking [[{0}]]".format(title))
@@ -97,38 +103,10 @@ class AFCCopyvios(Task):
         orig_conf = "{0}%".format(round(result.confidence * 100, 2))
 
         if result.violation:
-            # Things can change in the minute that it takes to do a check.
-            # Confirm that a violation still holds true:
-            page.load()
-            if self.is_tagged(page.get()):
-                msg = u"A violation was detected in [[{0}]], but it was tagged"
-                msg += " by someone else while checking (best: {1} at {2} confidence)"
-                self.logger.info(msg.format(title, url, orig_conf))
+            if self.handle_violation(title, page, result, url, orig_conf):
                 self._trial_reporter(title, False, url, orig_conf, result.queries, result.time, msg)
                 self.log_processed(pageid)
                 return
-            confirm = page.copyvio_compare(url, self.min_confidence)
-            new_conf = "{0}%".format(round(confirm.confidence * 100, 2))
-            if not confirm.violation:
-                msg = u"A violation was detected in [[{0}]], but couldn't be confirmed."
-                msg += u" It may have just been edited (best: {1} at {2} -> {3} confidence)"
-                self.logger.info(msg.format(title, url, orig_conf, new_conf))
-                self._trial_reporter(title, False, url, orig_conf, result.queries, result.time, msg)
-                self.log_processed(pageid)
-                return
-
-            safeurl = quote(url.encode("utf8"), safe="/:").decode("utf8")
-            content = page.get()
-            template = u"\{\{{0}|url={1}|confidence={2}\}\}\n"
-            template = template.format(self.template, safeurl, new_conf)
-            newtext = template + content
-            # if "{url}" in self.summary:
-            #     page.edit(newtext, self.summary.format(url=url))
-            # else:
-            #     page.edit(newtext, self.summary)
-            msg = u"Found violation: [[{0}]] -> {1} ({2} confidence)"
-            self.logger.info(msg.format(title, url, new_conf))
-            self._trial_reporter(title, True, url, new_conf, result.queries, result.time, msg)
         else:
             msg = u"No violations detected in [[{0}]] (best: {1} at {2} confidence)"
             self.logger.info(msg.format(title, url, orig_conf))
@@ -137,6 +115,38 @@ class AFCCopyvios(Task):
         self.log_processed(pageid)
         if self.cache_results:
             self.cache_result(page, result)
+
+    def handle_violation(self, title, page, result, url, orig_conf):
+        """Handle a page that passed its initial copyvio check."""
+        # Things can change in the minute that it takes to do a check.
+        # Confirm that a violation still holds true:
+        page.load()
+        content = page.get()
+        tag = self.is_tagged(mwparserfromhell.parse(content))
+        if tag:
+            msg = u"A violation was detected in [[{0}]], but it was tagged"
+            msg += u" in the mean time with '{1}' (best: {2} at {3} confidence)"
+            self.logger.info(msg.format(title, tag, url, orig_conf))
+            return True
+        confirm = page.copyvio_compare(url, self.min_confidence)
+        new_conf = "{0}%".format(round(confirm.confidence * 100, 2))
+        if not confirm.violation:
+            msg = u"A violation was detected in [[{0}]], but couldn't be confirmed."
+            msg += u" It may have just been edited (best: {1} at {2} -> {3} confidence)"
+            self.logger.info(msg.format(title, url, orig_conf, new_conf))
+            return True
+
+        msg = u"Found violation: [[{0}]] -> {1} ({2} confidence)"
+        self.logger.info(msg.format(title, url, new_conf))
+        # safeurl = quote(url.encode("utf8"), safe="/:").decode("utf8")
+        # template = u"\{\{{0}|url={1}|confidence={2}\}\}\n"
+        # template = template.format(self.template, safeurl, new_conf)
+        # newtext = template + content
+        # if "{url}" in self.summary:
+        #     page.edit(newtext, self.summary.format(url=url))
+        # else:
+        #     page.edit(newtext, self.summary)
+        self._trial_reporter(title, True, url, new_conf, result.queries, result.time, msg)
 
     def _trial_reporter(self, title, violation, url, conf, queries, time, msg):
         from datetime import datetime
@@ -152,13 +162,26 @@ class AFCCopyvios(Task):
         with open("/data/project/earwigbot/public_html/copyvio_bot_trial.txt", "a") as fp:
             fp.write(data.encode("utf8"))
 
-    def is_tagged(self, text):
-        """Return whether the text contains a copyvio check template."""
-        code = mwparserfromhell.parse(text)
+    def is_tagged(self, code):
+        """Return whether a page contains a copyvio check template."""
         for template in code.ifilter_templates():
             for tag in self.tags:
                 if template.name.matches(tag):
+                    return tag
+
+    def is_pending(self, code):
+        """Return whether a page is a pending AFC submission."""
+        other_statuses = ["r", "t", "d"]
+        tmpls = ["submit", "afc submission/submit", "afc submission/pending"]
+        for template in code.ifilter_templates():
+            name = template.name.strip().lower()
+            if name == "afc submission":
+                if not template.has(1):
                     return True
+                if template.get(1).value.strip().lower() not in other_statuses:
+                    return True
+            elif name in tmpls:
+                return True
         return False
 
     def has_been_processed(self, pageid):
