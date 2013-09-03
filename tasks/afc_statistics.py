@@ -159,7 +159,7 @@ class AFCStatistics(Task):
         query = "SELECT * FROM page JOIN row ON page_id = row_id WHERE row_chart = ?"
         with self.conn.cursor(oursql.DictCursor) as cursor:
             cursor.execute(query, (chart_id,))
-            for page in cursor:
+            for page in cursor.fetchall():
                 chart += "\n" + self.compile_chart_row(page)
 
         chart += "\n{{" + self.tl_footer + "}}"
