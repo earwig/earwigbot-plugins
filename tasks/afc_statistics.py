@@ -233,7 +233,8 @@ class AFCStatistics(Task):
                           r.page_latest, r.page_title, r.page_namespace
                    FROM page AS s
                    LEFT JOIN {0}_p.page AS r ON s.page_id = r.page_id
-                   WHERE s.page_modify_oldid != r.page_latest"""
+                   WHERE s.page_modify_oldid != r.page_latest
+                   OR r.page_id IS NULL"""
         cursor.execute(query.format(self.site.name))
 
         for pageid, title, oldid, real_oldid, real_title, real_ns in cursor:
