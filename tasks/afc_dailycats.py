@@ -55,5 +55,8 @@ class AFCDailyCats(Task):
 
     def make_cat(self, suffix, word):
         page = self.site.get_page(self.prefix + suffix)
-        if page.exists() == page.PAGE_MISSING:
+        if page.exists == page.PAGE_MISSING:
             page.edit(self.content, self.summary.format(word))
+            self.logger.log("Creating [[{0}]]".format(page.title))
+        else:
+            self.logger.debug("Skipping [[{0}]], exists".format(page.title))
