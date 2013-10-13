@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import mwparserfromhell
+
 from earwigbot.tasks import Task
 
 class AFCUndated(Task):
@@ -27,7 +29,16 @@ class AFCUndated(Task):
     name = "afc_undated"
 
     def setup(self):
-        pass
+        cfg = self.config.tasks.get(self.name, {})
+        self.category = cfg.get("category", "Undated AfC submissions")
+        default_summary = "Adding timestamp to undated [[WP:AFC|Articles for creation]] submission."
+        self.summary = self.make_summary(cfg.get("summary", default_summary))
 
     def run(self, **kwargs):
-        pass
+        counter = 0
+        for page in cat:
+            if counter % 10:
+                if self.shutoff_enabled():
+                    return True
+            ###
+            counter += 1
