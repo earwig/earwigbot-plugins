@@ -26,6 +26,7 @@ class BLPTag(Task):
     """A task to add |blp=yes to ``{{WPB}}`` or ``{{WPBS}}`` when it is used
     along with ``{{WP Biography}}``."""
     name = "blp_tag"
+    number = 12
 
     def setup(self):
         pass

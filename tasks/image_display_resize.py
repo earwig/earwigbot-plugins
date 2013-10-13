@@ -25,6 +25,7 @@ from earwigbot.tasks import Task
 class ImageDisplayResize(Task):
     """A task to resize upscaled portraits in infoboxes."""
     name = "image_display_resize"
+    number = 13
 
     def setup(self):
         pass

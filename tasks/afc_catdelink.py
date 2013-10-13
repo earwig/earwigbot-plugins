@@ -26,6 +26,7 @@ class AFCCatDelink(Task):
     """A task to delink mainspace categories in declined [[WP:AFC]]
     submissions."""
     name = "afc_catdelink"
+    number = 8
 
     def setup(self):
         pass

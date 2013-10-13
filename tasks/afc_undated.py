@@ -27,6 +27,7 @@ from earwigbot.tasks import Task
 class AFCUndated(Task):
     """A task to clear [[Category:Undated AfC submissions]]."""
     name = "afc_undated"
+    number = 5
 
     def setup(self):
         cfg = self.config.tasks.get(self.name, {})
