@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from datetime import datetime
+
 import mwparserfromhell
 
 from earwigbot.tasks import Task
@@ -43,6 +45,13 @@ class AFCUndated(Task):
         self.aliases = {"submission": ["AFC submission"], "talk": ["WPAFC"]}
 
     def run(self, **kwargs):
+        try:
+            self.statistics = self.bot.tasks.get("afc_statistics")
+        except KeyError:
+            err = "Requires afc_statistics task (from earwigbot_plugins)"
+            self.logger.error(err)
+            return
+
         self.site = self.bot.wiki.get_site()
         category = self.site.get_category(self.category)
         logmsg = u"Undated category [[{0}]] has {1} members"
@@ -51,7 +60,7 @@ class AFCUndated(Task):
             self.build_aliases()
             counter = 0
             for page in category:
-                if counter % 10:
+                if not counter % 10:
                     if self.shutoff_enabled():
                         return
                 self.process_page(page)
@@ -63,23 +72,37 @@ class AFCUndated(Task):
 
     def process_page(self, page):
         """Date the necessary templates inside a page object."""
+        if not page.check_exclusion():
+            msg = u"Skipping [[{0}]]; bot excluded from editing"
+            self.logger.info(msg.format(page.title))
+            return
+
         is_sub = page.namespace in self.namespaces["submission"]
         is_talk = page.namespace in self.namespaces["talk"]
         if is_sub:
             aliases = self.aliases["subission"]
-            timestamp = self.get_timestamp(page)
+            timestamps = {}
         elif is_talk:
             aliases = self.aliases["talk"]
             timestamp, reviewer = self.get_talkdata(page)
         else:
-            msg = u"[[{0}]] is undated, but in a namespace we don't know how to process"
+            msg = u"[[{0}]] is undated, but in a namespace I don't know how to process"
             self.logger.warn(msg.format(page.title))
+            return
+        if not timestamp:
             return
 
         code = mwparserfromhell.parse(page.get())
         changes = 0
         for template in code.filter_templates():
             if template.name.matches(aliases) and not template.has("ts"):
+                if is_sub:
+                    status = self.get_status(template)
+                    if status in timestamps:
+                        timestamp = timestamps[status]
+                    else:
+                        timestamp = self.get_timestamp(page, status)
+                        timestamps[status] = timestamp
                 template.add("ts", timestamp)
                 if is_talk and not template.has("reviewer"):
                     template.add("reviewer", reviewer)
@@ -93,9 +116,26 @@ class AFCUndated(Task):
             msg = u"[[{0}]] is undated, but I can't figure out what to replace"
             self.logger.warn(msg.format(page.title))
 
-    def get_timestamp(self, page):
+    def get_status(self, template):
+        """Get the status code that corresponds to a given template."""
+        valid = ["P", "R", "T", "D"]
+        if template.has(1):
+            status = template.get(1).value.strip().upper()
+            if status in valid:
+                return status
+        return "P"
+
+    def get_timestamp(self, page, chart):
         """Get the timestamp associated with a particular submission."""
-        return timestamp
+        log = u"[[{0}]]: Getting timestamp for state {1}"
+        self.logger.debug(log.format(page.title, chart))
+        search = self.statistics.search_history
+        user, ts, revid = search(page.pageid, chart, chart, [])
+        if not ts:
+            log = u"Couldn't find timestamp in [[{0}]] with state {1}"
+            self.logger.warn(log.format(page.title, chart))
+            return None
+        return ts.strftime("%Y%m%d%H%M%S")
 
     def get_talkdata(self, page):
         """Get the timestamp and reviewer associated with a talkpage.
@@ -103,4 +143,28 @@ class AFCUndated(Task):
         This is the mover for a normal article submission, and the uploader for
         a file page.
         """
-        return timestamp, reviewer
+        subject = page.toggle_talk()
+        if subject.namespace == NS_FILE:
+            return self.get_filedata(subject)
+        self.logger.debug(u"[[{0}]]: Getting talkdata".format(page.title))
+        chart = self.statistics.CHART_ACCEPT
+        user, ts, revid = self.statistics.get_special(subject.pageid, chart)
+        if not ts:
+            log = u"Couldn't get talkdata for [[{0}]]"
+            self.logger.warn(log.format(page.title))
+            return None, None
+        return ts.strftime("%Y%m%d%H%M%S"), user
+
+    def get_filedata(self, page):
+        """Get the timestamp and reviewer associated with a file talkpage."""
+        self.logger.debug(u"[[{0}]]: Getting filedata".format(page.title))
+        result = self.site.api_query(action="query", prop="imageinfo",
+                                     titles=page.title)
+        data = result["query"]["pages"].values()[0]
+        if "imageinfo" not in data:
+            log = u"Couldn't get filedata for [[{0}]]"
+            self.logger.warn(log.format(page.title))
+            return None, None
+        info = data["imageinfo"][0]
+        ts = datetime.strptime(info["timestamp", "%Y-%m-%dT%H:%M:%SZ")
+        return ts.strftime("%Y%m%d%H%M%S"), info["user"]
