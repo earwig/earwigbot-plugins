@@ -68,7 +68,18 @@ class AFCUndated(Task):
 
     def build_aliases(self):
         """Build template name aliases for the AFC templates."""
-        pass
+        for key in self.aliases:
+            base = self.aliases[key][0]
+            aliases = [base, "Template:" + base]
+            result = self.site.api_query(
+                action="query", list="backlinks", bllimit=50,
+                blfilterredir="redirects", bltitle=aliases[1])
+            for data in result["query"]["backlinks"]:
+                redir = self.site.get_page(data["title"])
+                aliases.append(redir.title)
+                if redir.namespace == NS_TEMPLATE:
+                    aliases.append(redir.title.split(":", 1)[1])
+            self.aliases[key] = aliases
 
     def process_page(self, page):
         """Date the necessary templates inside a page object."""
@@ -166,5 +177,5 @@ class AFCUndated(Task):
             self.logger.warn(log.format(page.title))
             return None, None
         info = data["imageinfo"][0]
-        ts = datetime.strptime(info["timestamp", "%Y-%m-%dT%H:%M:%SZ")
+        ts = datetime.strptime(info["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
         return ts.strftime("%Y%m%d%H%M%S"), info["user"]
