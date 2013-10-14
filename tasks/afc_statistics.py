@@ -597,7 +597,16 @@ class AFCStatistics(Task):
         elif chart == self.CHART_DECLINE:
             search_for = "D"
             search_not = ["R", "P", "T"]
+        return self.search_history(pageid, chart, search_for, search_not)
 
+    def search_history(self, pageid, chart, search_for, search_not):
+        """Search through a page's history to find when a status was set.
+
+        Linear search backwards in time for the edit right after the most
+        recent edit that fails the (pseudocode) test:
+
+        ``status_set(search_for) && !status_set(any_of(search_not))``
+        """
         query = """SELECT rev_user_text, rev_timestamp, rev_id
                    FROM revision WHERE rev_page = ? ORDER BY rev_id DESC"""
         result = self.site.sql_query(query, (pageid,))
@@ -607,13 +616,13 @@ class AFCStatistics(Task):
         for user, ts, revid in result:
             counter += 1
             if counter > 50:
-                msg = "Exceeded 50 content lookups while determining special for page (id: {0}, chart: {1})"
+                msg = "Exceeded 50 content lookups while searching history of page (id: {0}, chart: {1})"
                 self.logger.warn(msg.format(pageid, chart))
                 return None, None, None
             try:
                 content = self.get_revision_content(revid)
             except exceptions.APIError:
-                msg = "API error interrupted SQL query in get_special() for page (id: {0}, chart: {1})"
+                msg = "API error interrupted SQL query in search_history() for page (id: {0}, chart: {1})"
                 self.logger.exception(msg.format(pageid, chart))
                 return None, None, None
             statuses = self.get_statuses(content)
