@@ -725,9 +725,11 @@ class DRNClerkBot(Task):
         return row + "|sm={{{small|}}}}}\n"
 
     def format_time(self, dt):
-        """Return a string telling the time since datetime occurred."""
+        """Return a string telling the time since *dt* occurred."""
         parts = [("year", 31536000), ("day", 86400), ("hour", 3600)]
         seconds = int((datetime.utcnow() - dt).total_seconds())
+        if seconds < 0:
+            return "Invalid future time"
         msg = []
         for name, size in parts:
             num = seconds // size
