@@ -349,7 +349,6 @@ class AFCStatistics(Task):
             self.logger.warn(msg)
             return
 
-        size = self.get_size(content)
         m_user, m_time, m_id = self.get_modify(pageid)
         s_user, s_time, s_id = self.get_special(pageid, chart)
         notes = self.get_notes(chart, content, m_time, s_user)
@@ -357,8 +356,8 @@ class AFCStatistics(Task):
         query1 = "INSERT INTO row VALUES (?, ?)"
         query2 = "INSERT INTO page VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         cursor.execute(query1, (pageid, chart))
-        cursor.execute(query2, (pageid, status, title, size, notes, m_user,
-                                m_time, m_id, s_user, s_time, s_id))
+        cursor.execute(query2, (pageid, status, title, len(content), notes,
+                                m_user, m_time, m_id, s_user, s_time, s_id))
 
     def update_page(self, cursor, pageid, title):
         """Update hook for when page is already in our database.
@@ -384,15 +383,14 @@ class AFCStatistics(Task):
             dict_cursor.execute(query, (pageid,))
             result = dict_cursor.fetchall()[0]
 
-        size = self.get_size(content)
         m_user, m_time, m_id = self.get_modify(pageid)
 
         if title != result["page_title"]:
             self.update_page_title(cursor, result, pageid, title)
 
         if m_id != result["page_modify_oldid"]:
-            self.update_page_modify(cursor, result, pageid, size, m_user,
-                                    m_time, m_id)
+            self.update_page_modify(cursor, result, pageid, len(content),
+                                    m_user, m_time, m_id)
 
         if status != result["page_status"]:
             special = self.update_page_status(cursor, result, pageid, status,
@@ -548,10 +546,6 @@ class AFCStatistics(Task):
             elif name in aliases:
                 statuses.append(aliases[name])
         return statuses
-
-    def get_size(self, content):
-        """Return a page's size in a short, pretty format."""
-        return "{0} kB".format(round(len(content) / 1000.0, 1))
 
     def get_modify(self, pageid):
         """Return information about a page's last edit ("modification").

@@ -53,7 +53,7 @@ CREATE TABLE `page` (
   `page_id` int(10) unsigned NOT NULL,
   `page_status` varchar(16) COLLATE utf8_unicode_ci DEFAULT NULL,
   `page_title` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `page_size` varchar(16) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `page_size` int(6) unsigned NOT NULL,
   `page_notes` tinytext COLLATE utf8_unicode_ci,
   `page_modify_user` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `page_modify_time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
