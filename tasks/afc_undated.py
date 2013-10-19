@@ -99,11 +99,11 @@ class AFCUndated(Task):
         elif is_talk:
             aliases = self.aliases["talk"]
             timestamp, reviewer = self.get_talkdata(page)
+            if not timestamp:
+                return
         else:
             msg = u"[[{0}]] is undated, but in a namespace I don't know how to process"
             self.logger.warn(msg.format(page.title))
-            return
-        if not timestamp:
             return
 
         code = mwparserfromhell.parse(page.get())
@@ -119,6 +119,8 @@ class AFCUndated(Task):
                     else:
                         timestamp = self.get_timestamp(page, status)
                         timestamps[status] = timestamp
+                    if not timestamp:
+                        continue
                 template.add("ts", timestamp)
                 if is_talk and not has_reviewer:
                     template.add("reviewer", reviewer)
