@@ -55,6 +55,7 @@ class AFCStatistics(Task):
     def setup(self):
         self.cfg = cfg = self.config.tasks.get(self.name, {})
         self.site = self.bot.wiki.get_site()
+        self.revision_cache = {}
 
         # Set some wiki-related attributes:
         self.pagename = cfg.get("page", "Template:AFC statistics")
