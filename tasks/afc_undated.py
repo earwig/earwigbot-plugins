@@ -94,7 +94,7 @@ class AFCUndated(Task):
         is_sub = page.namespace in self.namespaces["submission"]
         is_talk = page.namespace in self.namespaces["talk"]
         if is_sub:
-            aliases = self.aliases["subission"]
+            aliases = self.aliases["submission"]
             timestamps = {}
         elif is_talk:
             aliases = self.aliases["talk"]
