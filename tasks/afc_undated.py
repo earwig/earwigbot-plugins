@@ -109,7 +109,9 @@ class AFCUndated(Task):
         code = mwparserfromhell.parse(page.get())
         changes = 0
         for template in code.filter_templates():
-            if template.name.matches(aliases) and not template.has("ts"):
+            has_ts = template.has("ts", ignore_empty=True)
+            has_reviewer = template.has("reviewer", ignore_empty=True)
+            if template.name.matches(aliases) and not has_ts:
                 if is_sub:
                     status = self.get_status(template)
                     if status in timestamps:
@@ -118,7 +120,7 @@ class AFCUndated(Task):
                         timestamp = self.get_timestamp(page, status)
                         timestamps[status] = timestamp
                 template.add("ts", timestamp)
-                if is_talk and not template.has("reviewer"):
+                if is_talk and not has_reviewer:
                     template.add("reviewer", reviewer)
                 changes += 1
 
