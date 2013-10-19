@@ -42,7 +42,10 @@ class AFCUndated(Task):
             "talk": [NS_TALK, NS_FILE_TALK, NS_TEMPLATE_TALK, NS_HELP_TALK,
                      NS_CATEGORY_TALK]
         }
-        self.aliases = {"submission": ["AFC submission"], "talk": ["WPAFC"]}
+        self.aliases = {
+            "submission": ["AFC submission"],
+            "talk": ["WikiProject Articles for creation"]
+        }
 
     def run(self, **kwargs):
         try:
