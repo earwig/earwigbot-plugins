@@ -76,7 +76,6 @@ class AFCReport(Command):
     def report(self, page):
         url = page.url.encode("utf8")
         url = url.replace("en.wikipedia.org/wiki", "enwp.org")
-        short = self.statistics.get_short_title(page.title)
         status = self.get_status(page)
         user = page.get_creator()
         user_name = user.name
@@ -88,7 +87,7 @@ class AFCReport(Command):
         if status == "accepted":
             msg3 = "Reviewed by \x0302{0}\x0F ({1})"
 
-        self.reply(self.data, msg1.format(short, url))
+        self.reply(self.data, msg1.format(page.title.encode("utf8"), url))
         self.say(self.data.chan, msg2.format(status))
         self.say(self.data.chan, msg3.format(user_name, user_url))
 
