@@ -95,33 +95,24 @@ class AFCUndated(Task):
         is_talk = page.namespace in self.namespaces["talk"]
         if is_sub:
             aliases = self.aliases["submission"]
-            timestamps = {}
+            timestamp = self.get_timestamp(page)
         elif is_talk:
             aliases = self.aliases["talk"]
             timestamp, reviewer = self.get_talkdata(page)
-            if not timestamp:
-                return
         else:
             msg = u"[[{0}]] is undated, but in a namespace I don't know how to process"
             self.logger.warn(msg.format(page.title))
+            return
+        if not timestamp:
             return
 
         code = mwparserfromhell.parse(page.get())
         changes = 0
         for template in code.filter_templates():
             has_ts = template.has("ts", ignore_empty=True)
-            has_reviewer = template.has("reviewer", ignore_empty=True)
             if template.name.matches(aliases) and not has_ts:
-                if is_sub:
-                    status = self.get_status(template)
-                    if status in timestamps:
-                        timestamp = timestamps[status]
-                    else:
-                        timestamp = self.get_timestamp(page, status)
-                        timestamps[status] = timestamp
-                    if not timestamp:
-                        continue
                 template.add("ts", timestamp)
+                has_reviewer = template.has("reviewer", ignore_empty=True)
                 if is_talk and not has_reviewer:
                     template.add("reviewer", reviewer)
                 changes += 1
@@ -134,25 +125,19 @@ class AFCUndated(Task):
             msg = u"[[{0}]] is undated, but I can't figure out what to replace"
             self.logger.warn(msg.format(page.title))
 
-    def get_status(self, template):
-        """Get the status code that corresponds to a given template."""
-        valid = ["P", "R", "T", "D"]
-        if template.has(1):
-            status = template.get(1).value.strip().upper()
-            if status in valid:
-                return status
-        return "P"
-
-    def get_timestamp(self, page, chart):
+    def get_timestamp(self, page):
         """Get the timestamp associated with a particular submission."""
-        log = u"[[{0}]]: Getting timestamp for state {1}"
-        self.logger.debug(log.format(page.title, chart))
-        search = self.statistics.search_history
-        user, ts, revid = search(page.pageid, chart, chart, [])
-        if not ts:
-            log = u"Couldn't find timestamp in [[{0}]] with state {1}"
-            self.logger.warn(log.format(page.title, chart))
+        self.logger.debug(u"[[{0}]]: Getting timestamp".format(page.title))
+        result = self.site.api_query(
+            action="query", prop="revisions", rvprop="timestamp", rvlimit=1,
+            rvdir="newer", titles=page.title)
+        data = result["query"]["pages"].values()[0]
+        if "revisions" not in data:
+            log = u"Couldn't get timestamp for [[{0}]]"
+            self.logger.warn(log.format(page.title))
             return None
+        raw = data["revisions"][0]["timestamp"]
+        ts = datetime.strptime(raw, "%Y-%m-%dT%H:%M:%SZ")
         return ts.strftime("%Y%m%d%H%M%S")
 
     def get_talkdata(self, page):
