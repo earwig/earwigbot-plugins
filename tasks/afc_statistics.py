@@ -582,26 +582,26 @@ class AFCStatistics(Task):
         elif chart == self.CHART_MISPLACE:
             return self.get_create(pageid)
         elif chart == self.CHART_ACCEPT:
-            search_for = None
-            search_not = ["R", "P", "T", "D"]
+            search_with = []
+            search_without = ["R", "P", "T", "D"]
         elif chart == self.CHART_PEND:
-            search_for = "P"
-            search_not = []
+            search_with = ["P"]
+            search_without = []
         elif chart == self.CHART_REVIEW:
-            search_for = "R"
-            search_not = []
+            search_with = ["R"]
+            search_without = []
         elif chart == self.CHART_DECLINE:
-            search_for = "D"
-            search_not = ["R", "P", "T"]
-        return self.search_history(pageid, chart, search_for, search_not)
+            search_with = ["D"]
+            search_without = ["R", "P", "T"]
+        return self.search_history(pageid, chart, search_with, search_without)
 
-    def search_history(self, pageid, chart, search_for, search_not):
+    def search_history(self, pageid, chart, search_with, search_without):
         """Search through a page's history to find when a status was set.
 
         Linear search backwards in time for the edit right after the most
         recent edit that fails the (pseudocode) test:
 
-        ``status_set(search_for) && !status_set(any_of(search_not))``
+        ``status_set(any(search_with)) && !status_set(any(search_without))``
         """
         query = """SELECT rev_user_text, rev_timestamp, rev_id
                    FROM revision WHERE rev_page = ? ORDER BY rev_id DESC"""
@@ -622,8 +622,8 @@ class AFCStatistics(Task):
                 self.logger.exception(msg.format(pageid, chart))
                 return None, None, None
             statuses = self.get_statuses(content)
-            matches = [s in statuses for s in search_not]
-            if any(matches) or (search_for and search_for not in statuses):
+            req = search_with and not any([s in statuses for s in search_with])
+            if any([s in statuses for s in search_without]) or req:
                 return last
             timestamp = datetime.strptime(ts, "%Y%m%d%H%M%S")
             last = (user.decode("utf8"), timestamp, revid)
