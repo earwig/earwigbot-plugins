@@ -147,6 +147,10 @@ class AFCUndated(Task):
         a file page.
         """
         subject = page.toggle_talk()
+        if subject.exists == subject.PAGE_MISSING:
+            log = u"Couldn't process [[{0}]]: subject page doesn't exist"
+            self.logger.warn(log.format(page.title))
+            return None, None
         if subject.namespace == NS_FILE:
             return self.get_filedata(subject)
         self.logger.debug(u"[[{0}]]: Getting talkdata".format(page.title))
