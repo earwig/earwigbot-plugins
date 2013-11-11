@@ -108,6 +108,8 @@ class AFCStatistics(Task):
         finally:
             self.db_access_lock.release()
 
+    #################### CHART BUILDING AND SAVING METHODS ####################
+
     def save(self, kwargs):
         """Save our local statistics to the wiki.
 
@@ -123,7 +125,7 @@ class AFCStatistics(Task):
                 return
             summary = self.summary
 
-        statistics = self.compile_charts()
+        statistics = self._compile_charts()
 
         page = self.site.get_page(self.pagename)
         text = page.get()
@@ -140,16 +142,16 @@ class AFCStatistics(Task):
         page.edit(newtext, summary, minor=True, bot=True)
         self.logger.info(u"Chart saved to [[{0}]]".format(page.title))
 
-    def compile_charts(self):
+    def _compile_charts(self):
         """Compile and return all statistics information from our local db."""
         stats = ""
         with self.conn.cursor() as cursor:
             cursor.execute("SELECT * FROM chart")
             for chart in cursor:
-                stats += self.compile_chart(chart) + "\n"
+                stats += self._compile_chart(chart) + "\n"
         return stats[:-1]  # Drop the last newline
 
-    def compile_chart(self, chart_info):
+    def _compile_chart(self, chart_info):
         """Compile and return a single statistics chart."""
         chart_id, chart_title, special_title = chart_info
 
@@ -162,12 +164,12 @@ class AFCStatistics(Task):
         with self.conn.cursor(oursql.DictCursor) as cursor:
             cursor.execute(query, (chart_id,))
             for page in cursor.fetchall():
-                chart += "\n" + self.compile_chart_row(page)
+                chart += "\n" + self._compile_chart_row(page)
 
         chart += "\n{{" + self.tl_footer + "}}"
         return chart
 
-    def compile_chart_row(self, page):
+    def _compile_chart_row(self, page):
         """Compile and return a single chart row.
 
         'page' is a dict of page information, taken as a row from the page
@@ -178,25 +180,27 @@ class AFCStatistics(Task):
             row += "sr={page_special_user}|sd={page_special_time}|si={page_special_oldid}|"
         row += "mr={page_modify_user}|md={page_modify_time}|mi={page_modify_oldid}"
 
-        page["page_special_time"] = self.format_time(page["page_special_time"])
-        page["page_modify_time"] = self.format_time(page["page_modify_time"])
+        page["page_special_time"] = self._fmt_time(page["page_special_time"])
+        page["page_modify_time"] = self._fmt_time(page["page_modify_time"])
 
         if page["page_notes"]:
             row += "|n=1{page_notes}"
 
         return "{{" + row.format(self.tl_row, **page) + "}}"
 
-    def format_time(self, dt):
+    def _fmt_time(self, date):
         """Format a datetime into the standard MediaWiki timestamp format."""
-        return dt.strftime("%H:%M, %d %b %Y")
+        return date.strftime("%H:%M, %d %b %Y")
+
+    ######################## PRIMARY SYNC ENTRY POINTS ########################
 
     def sync(self, kwargs):
         """Synchronize our local statistics database with the site.
 
         Syncing involves, in order, updating tracked submissions that have
-        been changed since last sync (self.update_tracked()), adding pending
-        submissions that are not tracked (self.add_untracked()), and removing
-        old submissions from the database (self.delete_old()).
+        been changed since last sync (self._update_tracked()), adding pending
+        submissions that are not tracked (self._add_untracked()), and removing
+        old submissions from the database (self._delete_old()).
 
         The sync will be canceled if SQL replication lag is greater than 600
         seconds, because this will lead to potential problems and outdated
@@ -213,22 +217,22 @@ class AFCStatistics(Task):
             return
 
         with self.conn.cursor() as cursor:
-            self.update_tracked(cursor)
-            self.add_untracked(cursor)
-            self.delete_old(cursor)
+            self._update_tracked(cursor)
+            self._add_untracked(cursor)
+            self._delete_old(cursor)
 
         self.logger.info("Sync completed")
 
-    def update_tracked(self, cursor):
+    def _update_tracked(self, cursor):
         """Update tracked submissions that have been changed since last sync.
 
         This is done by iterating through every page in our database and
         comparing our stored latest revision ID with the actual latest revision
         ID from an SQL query. If they differ, we will update our information
-        about the page (self.update_page()).
+        about the page (self._update_page()).
 
         If the page does not exist, we will remove it from our database with
-        self.untrack_page().
+        self._untrack_page().
         """
         self.logger.debug("Updating tracked submissions")
         query = """SELECT s.page_id, s.page_title, s.page_modify_oldid,
@@ -241,7 +245,7 @@ class AFCStatistics(Task):
 
         for pageid, title, oldid, real_oldid, real_title, real_ns in cursor:
             if not real_oldid:
-                self.untrack_page(cursor, pageid)
+                self._untrack_page(cursor, pageid)
                 continue
             msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
             self.logger.debug(msg.format(title, pageid, oldid))
@@ -252,18 +256,18 @@ class AFCStatistics(Task):
             if ns:
                 real_title = u":".join((ns, real_title))
             try:
-                self.update_page(cursor, pageid, real_title)
+                self._update_page(cursor, pageid, real_title)
             except Exception:
                 e = u"Error updating page [[{0}]] (id: {1})"
                 self.logger.exception(e.format(real_title, pageid))
 
-    def add_untracked(self, cursor):
+    def _add_untracked(self, cursor):
         """Add pending submissions that are not yet tracked.
 
         This is done by compiling a list of all currently tracked submissions
         and iterating through all members of self.pending_cat via SQL. If a
         page in the pending category is not tracked and is not in
-        self.ignore_list, we will track it with self.track_page().
+        self.ignore_list, we will track it with self._track_page().
         """
         self.logger.debug("Adding untracked pending submissions")
         query = """SELECT r.page_id, r.page_title, r.page_namespace
@@ -284,12 +288,12 @@ class AFCStatistics(Task):
             msg = u"Tracking page [[{0}]] (id: {1})".format(title, pageid)
             self.logger.debug(msg)
             try:
-                self.track_page(cursor, pageid, title)
+                self._track_page(cursor, pageid, title)
             except Exception:
                 e = u"Error tracking page [[{0}]] (id: {1})"
                 self.logger.exception(e.format(title, pageid))
 
-    def delete_old(self, cursor):
+    def _delete_old(self, cursor):
         """Remove old submissions from the database.
 
         "Old" is defined as a submission that has been declined or accepted
@@ -323,37 +327,39 @@ class AFCStatistics(Task):
 
             msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
             self.logger.info(msg.format(title, pageid, oldid))
-            self.update_page(cursor, pageid, title)
+            self._update_page(cursor, pageid, title)
 
-    def untrack_page(self, cursor, pageid):
+    ######################## PRIMARY PAGE ENTRY POINTS ########################
+
+    def _untrack_page(self, cursor, pageid):
         """Remove a page, given by ID, from our database."""
         self.logger.debug("Untracking page (id: {0})".format(pageid))
         query = """DELETE FROM page, row USING page JOIN row
                    ON page_id = row_id WHERE page_id = ?"""
         cursor.execute(query, (pageid,))
 
-    def track_page(self, cursor, pageid, title):
+    def _track_page(self, cursor, pageid, title):
         """Update hook for when page is not in our database.
 
         A variety of SQL queries are used to gather information about the page,
         which is then saved to our database.
         """
-        content = self.get_content(title)
+        content = self._get_content(title)
         if content is None:
             msg = u"Could not get page content for [[{0}]]".format(title)
             self.logger.error(msg)
             return
 
         namespace = self.site.get_page(title).namespace
-        status, chart = self.get_status_and_chart(content, namespace)
+        status, chart = self._get_status_and_chart(content, namespace)
         if chart == self.CHART_NONE:
             msg = u"Could not find a status for [[{0}]]".format(title)
             self.logger.warn(msg)
             return
 
-        m_user, m_time, m_id = self.get_modify(pageid)
-        s_user, s_time, s_id = self.get_special(pageid, chart)
-        notes = self.get_notes(chart, content, m_time, s_user)
+        m_user, m_time, m_id = self._get_modify(pageid)
+        s_user, s_time, s_id = self._get_special(pageid, content, chart)
+        notes = self._get_notes(chart, content, m_time, s_user)
 
         query1 = "INSERT INTO row VALUES (?, ?)"
         query2 = "INSERT INTO page VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
@@ -361,23 +367,23 @@ class AFCStatistics(Task):
         cursor.execute(query2, (pageid, status, title, len(content), notes,
                                 m_user, m_time, m_id, s_user, s_time, s_id))
 
-    def update_page(self, cursor, pageid, title):
+    def _update_page(self, cursor, pageid, title):
         """Update hook for when page is already in our database.
 
         A variety of SQL queries are used to gather information about the page,
         which is compared against our stored information. Differing information
         is then updated.
         """
-        content = self.get_content(title)
+        content = self._get_content(title)
         if content is None:
             msg = u"Could not get page content for [[{0}]]".format(title)
             self.logger.error(msg)
             return
 
         namespace = self.site.get_page(title).namespace
-        status, chart = self.get_status_and_chart(content, namespace)
+        status, chart = self._get_status_and_chart(content, namespace)
         if chart == self.CHART_NONE:
-            self.untrack_page(cursor, pageid)
+            self._untrack_page(cursor, pageid)
             return
 
         query = "SELECT * FROM page JOIN row ON page_id = row_id WHERE page_id = ?"
@@ -385,27 +391,29 @@ class AFCStatistics(Task):
             dict_cursor.execute(query, (pageid,))
             result = dict_cursor.fetchall()[0]
 
-        m_user, m_time, m_id = self.get_modify(pageid)
+        m_user, m_time, m_id = self._get_modify(pageid)
 
         if title != result["page_title"]:
-            self.update_page_title(cursor, result, pageid, title)
+            self._update_page_title(cursor, result, pageid, title)
 
         if m_id != result["page_modify_oldid"]:
-            self.update_page_modify(cursor, result, pageid, len(content),
-                                    m_user, m_time, m_id)
+            self._update_page_modify(cursor, result, pageid, len(content),
+                                     m_user, m_time, m_id)
 
         if status != result["page_status"]:
-            special = self.update_page_status(cursor, result, pageid, status,
-                                              chart)
+            special = self._update_page_status(cursor, result, pageid, content,
+                                               status, chart)
             s_user = special[0]
         else:
             s_user = result["page_special_user"]
 
-        notes = self.get_notes(chart, content, m_time, s_user)
+        notes = self._get_notes(chart, content, m_time, s_user)
         if notes != result["page_notes"]:
-            self.update_page_notes(cursor, result, pageid, notes)
+            self._update_page_notes(cursor, result, pageid, notes)
 
-    def update_page_title(self, cursor, result, pageid, title):
+    ###################### PAGE ATTRIBUTE UPDATE METHODS ######################
+
+    def _update_page_title(self, cursor, result, pageid, title):
         """Update the title of a page in our database."""
         query = "UPDATE page SET page_title = ? WHERE page_id = ?"
         cursor.execute(query, (title, pageid))
@@ -413,7 +421,7 @@ class AFCStatistics(Task):
         msg = u"  {0}: title: {1} -> {2}"
         self.logger.debug(msg.format(pageid, result["page_title"], title))
 
-    def update_page_modify(self, cursor, result, pageid, size, m_user, m_time, m_id):
+    def _update_page_modify(self, cursor, result, pageid, size, m_user, m_time, m_id):
         """Update the last modified information of a page in our database."""
         query = """UPDATE page SET page_size = ?, page_modify_user = ?,
                    page_modify_time = ?, page_modify_oldid = ?
@@ -426,7 +434,7 @@ class AFCStatistics(Task):
                          result["page_modify_oldid"], m_user, m_time, m_id)
         self.logger.debug(msg)
 
-    def update_page_status(self, cursor, result, pageid, status, chart):
+    def _update_page_status(self, cursor, result, pageid, content, status, chart):
         """Update the status and "specialed" information of a page."""
         query1 = """UPDATE page JOIN row ON page_id = row_id
                    SET page_status = ?, row_chart = ? WHERE page_id = ?"""
@@ -439,7 +447,7 @@ class AFCStatistics(Task):
         self.logger.debug(msg.format(pageid, result["page_status"],
                                      result["row_chart"], status, chart))
 
-        s_user, s_time, s_id = self.get_special(pageid, chart)
+        s_user, s_time, s_id = self._get_special(pageid, content, chart)
         if s_id != result["page_special_oldid"]:
             cursor.execute(query2, (s_user, s_time, s_id, pageid))
             msg = u"  {0}: special: {1} / {2} / {3} -> {4} / {5} / {6}"
@@ -450,14 +458,16 @@ class AFCStatistics(Task):
 
         return s_user, s_time, s_id
 
-    def update_page_notes(self, cursor, result, pageid, notes):
+    def _update_page_notes(self, cursor, result, pageid, notes):
         """Update the notes (or warnings) of a page in our database."""
         query = "UPDATE page SET page_notes = ? WHERE page_id = ?"
         cursor.execute(query, (notes, pageid))
         msg = "  {0}: notes: {1} -> {2}"
         self.logger.debug(msg.format(pageid, result["page_notes"], notes))
 
-    def get_content(self, title):
+    ###################### DATA RETRIEVAL HELPER METHODS ######################
+
+    def _get_content(self, title):
         """Get the current content of a page by title from the API.
 
         The page's current revision ID is retrieved from SQL, and then
@@ -482,9 +492,9 @@ class AFCStatistics(Task):
             revid = int(list(result)[0][0])
         except IndexError:
             return None
-        return self.get_revision_content(revid)
+        return self._get_revision_content(revid)
 
-    def get_revision_content(self, revid, tries=1):
+    def _get_revision_content(self, revid, tries=1):
         """Get the content of a revision by ID from the API."""
         if revid in self.revision_cache:
             return self.revision_cache[revid]
@@ -495,11 +505,11 @@ class AFCStatistics(Task):
         except KeyError:
             if tries > 0:
                 sleep(5)
-                return self.get_revision_content(revid, tries=tries - 1)
+                return self._get_revision_content(revid, tries=tries - 1)
         self.revision_cache[revid] = content
         return content
 
-    def get_status_and_chart(self, content, namespace):
+    def _get_status_and_chart(self, content, namespace):
         """Determine the status and chart number of an AFC submission.
 
         The methodology used here is the same one I've been using for years
@@ -549,7 +559,7 @@ class AFCStatistics(Task):
                 statuses.append(aliases[name])
         return statuses
 
-    def get_modify(self, pageid):
+    def _get_modify(self, pageid):
         """Return information about a page's last edit ("modification").
 
         This consists of the most recent editor, modification time, and the
@@ -562,7 +572,7 @@ class AFCStatistics(Task):
         timestamp = datetime.strptime(m_time, "%Y%m%d%H%M%S")
         return m_user.decode("utf8"), timestamp, m_id
 
-    def get_special(self, pageid, chart):
+    def _get_special(self, pageid, content, chart):
         """Return information about a page's "special" edit.
 
         I tend to use the term "special" as a verb a lot, which is bound to
@@ -574,28 +584,80 @@ class AFCStatistics(Task):
         This "information" consists of the special edit's editor, its time, and
         its revision ID. If the page's status is not something that involves
         "special"-ing, we will return None for all three. The same will be
-        returned if we cannot determine when the page was "special"-ed, or if
-        it was "special"-ed more than 100 edits ago.
+        returned if we cannot determine when the page was "special"-ed.
         """
-        if chart == self.CHART_NONE:
-            return None, None, None
-        elif chart == self.CHART_MISPLACE:
-            return self.get_create(pageid)
-        elif chart == self.CHART_ACCEPT:
-            search_with = []
-            search_without = ["R", "P", "T", "D"]
-        elif chart == self.CHART_PEND:
-            search_with = ["P"]
-            search_without = []
-        elif chart == self.CHART_REVIEW:
-            search_with = ["R"]
-            search_without = []
-        elif chart == self.CHART_DECLINE:
-            search_with = ["D"]
-            search_without = ["R", "P", "T"]
-        return self.search_history(pageid, chart, search_with, search_without)
+        charts = {
+            self.CHART_NONE: (lambda pageid, content: None, None, None),
+            self.CHART_MISPLACE: self.get_create,
+            self.CHART_ACCEPT: self.get_accepted,
+            self.CHART_REVIEW: self.get_reviewing,
+            self.CHART_PEND: self.get_pending,
+            self.CHART_DECLINE: self.get_decline
+        }
+        return charts[chart](pageid, content)
 
-    def search_history(self, pageid, chart, search_with, search_without):
+    def get_create(self, pageid, content=None):
+        """Return (creator, create_ts, create_revid) for the given page."""
+        query = """SELECT rev_user_text, rev_timestamp, rev_id
+                   FROM revision WHERE rev_id =
+                   (SELECT MIN(rev_id) FROM revision WHERE rev_page = ?)"""
+        result = self.site.sql_query(query, (pageid,))
+        c_user, c_time, c_id = list(result)[0]
+        timestamp = datetime.strptime(c_time, "%Y%m%d%H%M%S")
+        return c_user.decode("utf8"), timestamp, c_id
+
+    def get_accepted(self, pageid, content=None):
+        """Return (acceptor, accept_ts, accept_revid) for the given page."""
+        query = """SELECT rev_user_text, rev_timestamp, rev_id FROM revision
+                   WHERE rev_comment LIKE "% moved page [[%]] to [[%]]%"
+                   AND rev_page = ? ORDER BY rev_timestamp DESC LIMIT 1"""
+        result = self.site.sql_query(query, (pageid,))
+        try:
+            a_user, a_time, a_id = list(result)[0]
+        except IndexError:
+            return None, None, None
+        timestamp = datetime.strptime(a_time, "%Y%m%d%H%M%S")
+        return a_user.decode("utf8"), timestamp, a_id
+
+    def get_reviewing(self, pageid, content=None):
+        """Return (reviewer, review_ts, review_revid) for the given page."""
+        return self._search_history(pageid, self.CHART_REVIEW, ["R"], [])
+
+    def get_pending(self, pageid, content):
+        """Return (submitter, submit_ts, submit_revid) for the given page."""
+        check = lambda tmpl: not tmpl.has(1) or tmpl.get(1).value.strip().upper() == "P"
+        res = self._get_status_helper(pageid, content, check, "u", "ts")
+        return res or self._search_history(pageid, self.CHART_PEND, ["P"], [])
+
+    def get_decline(self, pageid, content):
+        """Return (decliner, decline_ts, decline_revid) for the given page."""
+        check = lambda tmpl: tmpl.has(1) and tmpl.get(1).value.strip().upper() == "D"
+        res = self._get_status_helper(
+            pageid, content, check, "decliner", "declinets")
+        return res or self._search_history(
+            pageid, self.CHART_DECLINE, ["D"], ["R", "P", "T"])
+
+    def _get_status_helper(self, pageid, content, check, param_u, param_ts):
+        """Helper function for get_pending() and get_decline()."""
+        submits = []
+        code = mwparserfromhell.parse(content)
+        for tmpl in code.filter_templates():
+            if tmpl.name.strip().lower() == "afc submission" and check(tmpl):
+                if tmpl.has(param_u) and tmpl.has(param_ts):
+                    submits.append((tmpl.get(param_u), tmpl.get(param_ts)))
+        if not submits:
+            return None
+        latest = max(submits, lambda pair: pair[1])
+
+        query = """SELECT rev_id FROM revision WHERE rev_page = ?
+                   AND rev_user_text = ? AND rev_timestamp = ?"""
+        result = self.site.sql_query(query, (pageid, latest[0], latest[1]))
+        try:
+            return latest[0], latest[1], list(result)[0]
+        except IndexError:
+            return None
+
+    def _search_history(self, pageid, chart, search_with, search_without):
         """Search through a page's history to find when a status was set.
 
         Linear search backwards in time for the edit right after the most
@@ -616,9 +678,9 @@ class AFCStatistics(Task):
                 self.logger.warn(msg.format(pageid, chart))
                 return None, None, None
             try:
-                content = self.get_revision_content(revid)
+                content = self._get_revision_content(revid)
             except exceptions.APIError:
-                msg = "API error interrupted SQL query in search_history() for page (id: {0}, chart: {1})"
+                msg = "API error interrupted SQL query in _search_history() for page (id: {0}, chart: {1})"
                 self.logger.exception(msg.format(pageid, chart))
                 return None, None, None
             statuses = self.get_statuses(content)
@@ -630,21 +692,7 @@ class AFCStatistics(Task):
 
         return last
 
-    def get_create(self, pageid):
-        """Return information about a page's first edit ("creation").
-
-        This consists of the page creator, creation time, and the earliest
-        revision ID.
-        """
-        query = """SELECT rev_user_text, rev_timestamp, rev_id
-                   FROM revision WHERE rev_id =
-                   (SELECT MIN(rev_id) FROM revision WHERE rev_page = ?)"""
-        result = self.site.sql_query(query, (pageid,))
-        c_user, c_time, c_id = list(result)[0]
-        timestamp = datetime.strptime(c_time, "%Y%m%d%H%M%S")
-        return c_user.decode("utf8"), timestamp, c_id
-
-    def get_notes(self, chart, content, m_time, s_user):
+    def _get_notes(self, chart, content, m_time, s_user):
         """Return any special notes or warnings about this page.
 
         copyvio:    submission is a suspected copyright violation
@@ -662,12 +710,12 @@ class AFCStatistics(Task):
             return notes
 
         copyvios = self.config.tasks.get("afc_copyvios", {})
-        regex = "\{\{\s*" + copyvios.get("template", "AfC suspected copyvio")
+        regex = r"\{\{s*" + copyvios.get("template", "AfC suspected copyvio")
         if re.search(regex, content):
             notes += "|nc=1"  # Submission is a suspected copyvio
 
-        if not re.search("\<ref\s*(.*?)\>(.*?)\</ref\>", content, re.I | re.S):
-            regex = "(https?:)|\[//(?!{0})([^ \]\\t\\n\\r\\f\\v]+?)"
+        if not re.search(r"\<ref\s*(.*?)\>(.*?)\</ref\>", content, re.I|re.S):
+            regex = r"(https?:)|\[//(?!{0})([^ \]\t\n\r\f\v]+?)"
             sitedomain = re.escape(self.site.domain)
             if re.search(regex.format(sitedomain), content, re.I | re.S):
                 notes += "|ni=1"  # Submission has no inline citations

@@ -154,8 +154,7 @@ class AFCUndated(Task):
         if subject.namespace == NS_FILE:
             return self.get_filedata(subject)
         self.logger.debug(u"[[{0}]]: Getting talkdata".format(page.title))
-        chart = self.statistics.CHART_ACCEPT
-        user, ts, revid = self.statistics.get_special(subject.pageid, chart)
+        user, ts, revid = self.statistics.get_accepted(subject.pageid)
         if not ts:
             log = u"Couldn't get talkdata for [[{0}]]"
             self.logger.warn(log.format(page.title))
