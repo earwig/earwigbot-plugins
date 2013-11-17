@@ -644,10 +644,10 @@ class AFCStatistics(Task):
             if tmpl.name.strip().lower() == "afc submission":
                 if all([tmpl.has(par, ignore_empty=True) for par in params]):
                     if status in statuses:
-                        submits.append([tmpl.get(par) for par in params])
+                        submits.append([tmpl.get(par).value for par in params])
         if not submits:
             return None
-        latest = max(submits, lambda pair: pair[1])
+        latest = max(submits, key=lambda pair: pair[1])
 
         query = """SELECT rev_id FROM revision WHERE rev_page = ?
                    AND rev_user_text = ? AND rev_timestamp = ?"""
