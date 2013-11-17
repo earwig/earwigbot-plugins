@@ -655,8 +655,9 @@ class AFCStatistics(Task):
                    ORDER BY ABS(rev_timestamp - ?) ASC LIMIT 1"""
         result = self.site.sql_query(query, (pageid, user, stamp, stamp))
         try:
-            return user, stamp, list(result)[0]
-        except IndexError:
+            dtime = datetime.strptime(stamp, "%Y%m%d%H%M%S")
+            return user, dtime, list(result)[0][0]
+        except (ValueError, IndexError):
             return None
 
     def _search_history(self, pageid, chart, search_with, search_without):
