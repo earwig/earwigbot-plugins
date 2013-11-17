@@ -648,13 +648,14 @@ class AFCStatistics(Task):
                         submits.append(data)
         if not submits:
             return None
-        latest = max(submits, key=lambda pair: pair[1])
+        user, stamp = max(submits, key=lambda pair: pair[1])
 
         query = """SELECT rev_id FROM revision WHERE rev_page = ?
-                   AND rev_user_text = ? AND rev_timestamp = ?"""
-        result = self.site.sql_query(query, (pageid, latest[0], latest[1]))
+                   AND rev_user_text = ? AND ABS(rev_timestamp - ?) <= 60
+                   ORDER BY ABS(rev_timestamp - ?) ASC LIMIT 1"""
+        result = self.site.sql_query(query, (pageid, user, stamp, stamp))
         try:
-            return latest[0], latest[1], list(result)[0]
+            return user, stamp, list(result)[0]
         except IndexError:
             return None
 
