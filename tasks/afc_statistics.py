@@ -644,7 +644,8 @@ class AFCStatistics(Task):
             if tmpl.name.strip().lower() == "afc submission":
                 if all([tmpl.has(par, ignore_empty=True) for par in params]):
                     if status in statuses:
-                        submits.append([tmpl.get(par).value for par in params])
+                        data = [unicode(tmpl.get(par).value) for par in params]
+                        submits.append(data)
         if not submits:
             return None
         latest = max(submits, key=lambda pair: pair[1])
