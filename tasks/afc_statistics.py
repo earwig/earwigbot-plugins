@@ -550,7 +550,7 @@ class AFCStatistics(Task):
         for template in code.filter_templates():
             name = template.name.strip().lower()
             if name == "afc submission":
-                if template.has(1):
+                if template.has(1, ignore_empty=True):
                     status = template.get(1).value.strip().upper()
                     statuses.append(status if status in valid else "P")
                 else:
@@ -625,26 +625,26 @@ class AFCStatistics(Task):
 
     def get_pending(self, pageid, content):
         """Return (submitter, submit_ts, submit_revid) for the given page."""
-        check = lambda tmpl: not tmpl.has(1) or tmpl.get(1).value.strip().upper() == "P"
-        res = self._get_status_helper(pageid, content, check, "u", "ts")
+        res = self._get_status_helper(pageid, content, ("P", ""), ("u", "ts"))
         return res or self._search_history(pageid, self.CHART_PEND, ["P"], [])
 
     def get_decline(self, pageid, content):
         """Return (decliner, decline_ts, decline_revid) for the given page."""
-        check = lambda tmpl: tmpl.has(1) and tmpl.get(1).value.strip().upper() == "D"
-        res = self._get_status_helper(
-            pageid, content, check, "decliner", "declinets")
+        params = ("decliner", "declinets")
+        res = self._get_status_helper(pageid, content, ("D"), params)
         return res or self._search_history(
             pageid, self.CHART_DECLINE, ["D"], ["R", "P", "T"])
 
-    def _get_status_helper(self, pageid, content, check, param_u, param_ts):
+    def _get_status_helper(self, pageid, content, statuses, params):
         """Helper function for get_pending() and get_decline()."""
         submits = []
         code = mwparserfromhell.parse(content)
         for tmpl in code.filter_templates():
-            if tmpl.name.strip().lower() == "afc submission" and check(tmpl):
-                if tmpl.has(param_u) and tmpl.has(param_ts):
-                    submits.append((tmpl.get(param_u), tmpl.get(param_ts)))
+            status = tmpl.get(1).value.strip().upper() if tmpl.has(1) else "P"
+            if tmpl.name.strip().lower() == "afc submission":
+                if all([tmpl.has(par, ignore_empty=True) for par in params]):
+                    if status in statuses:
+                        submits.append([tmpl.get(par) for par in params])
         if not submits:
             return None
         latest = max(submits, lambda pair: pair[1])
