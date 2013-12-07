@@ -31,6 +31,16 @@ class AFCStatus(Command):
     commands = ["status", "count", "num", "number"]
     hooks = ["join", "msg"]
 
+    def setup(self):
+        try:
+            self.ignore_list = self.config.commands[self.name]["ignoreList"]
+        except KeyError:
+            try:
+                ignores = self.config.tasks["afc_statistics"]["ignoreList"]
+                self.ignore_list = ignores
+            except KeyError:
+                self.ignore_list = []
+
     def check(self, data):
         if data.is_command and data.command in self.commands:
             return True
@@ -134,9 +144,8 @@ class AFCStatus(Command):
 
     def count_submissions(self):
         """Returns the number of open AFC submissions (count of CAT:PEND)."""
-        # Subtract two for [[Wikipedia:Articles for creation/Redirects]] and
-        # [[Wikipedia:Files for upload]], which aren't real submissions:
-        return self.site.get_category("Pending AfC submissions").pages - 2
+        minus = len(ignore_list)
+        return self.site.get_category("Pending AfC submissions").pages - minus
 
     def count_redirects(self):
         """Returns the number of open redirect submissions. Calculated as the

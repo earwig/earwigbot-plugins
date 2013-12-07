@@ -280,10 +280,10 @@ class AFCStatistics(Task):
 
         for pageid, title, ns in cursor:
             title = title.decode("utf8").replace("_", " ")
-            ns = self.site.namespace_id_to_name(ns)
-            if ns:
-                title = u":".join((ns, title))
-            if title in self.ignore_list:
+            ns_name = self.site.namespace_id_to_name(ns)
+            if ns_name:
+                title = u":".join((ns_name, title))
+            if title in self.ignore_list or ns == wiki.NS_CATEGORY:
                 continue
             msg = u"Tracking page [[{0}]] (id: {1})".format(title, pageid)
             self.logger.debug(msg)

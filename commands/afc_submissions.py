@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from earwigbot import wiki
 from earwigbot.commands import Command
 
 class AFCSubmissions(Command):
@@ -53,7 +54,13 @@ class AFCSubmissions(Command):
 
         site = self.bot.wiki.get_site()
         category = site.get_category("Pending AfC submissions")
-        members = category.get_members(limit=number + len(self.ignore_list))
-        urls = [member.url.encode("utf8") for member in members if member.title not in self.ignore_list]
+        members = category.get_members(limit=50)
+        urls = []
+        for member in members:
+            if member.title in self.ignore_list:
+                continue
+            if member.namespace == wiki.NS_CATEGORY:
+                continue
+            urls.append(member.url.encode("utf8"))
         pages = ", ".join(urls[:number])
         self.reply(data, "{0} pending AfC subs: {1}".format(number, pages))
