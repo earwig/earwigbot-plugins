@@ -144,7 +144,7 @@ class AFCStatus(Command):
 
     def count_submissions(self):
         """Returns the number of open AFC submissions (count of CAT:PEND)."""
-        minus = len(ignore_list)
+        minus = len(self.ignore_list)
         return self.site.get_category("Pending AfC submissions").pages - minus
 
     def count_redirects(self):
