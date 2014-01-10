@@ -64,4 +64,15 @@ CREATE TABLE `page` (
   PRIMARY KEY (`page_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
--- Dump completed on 2012-07-20 20:25:10
+--
+-- Table structure for table `updatelog`
+--
+
+DROP TABLE IF EXISTS `updatelog`;
+CREATE TABLE `updatelog` (
+  `update_id` int(10) unsigned NOT NULL,
+  `update_time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`check_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- Dump completed on 2014-01-10 11:00:00

@@ -300,42 +300,53 @@ class AFCStatistics(Task):
         more than 36 hours ago. Pending submissions cannot be "old".
         """
         self.logger.debug("Removing old submissions from chart")
-        query = """DELETE FROM page, row USING page JOIN row
-                   ON page_id = row_id WHERE row_chart IN (?, ?)
+        query = """DELETE FROM page, row, updatelog USING page JOIN row
+                   ON page_id = row_id JOIN updatelog ON page_id = update_id
+                   WHERE row_chart IN (?, ?)
                    AND ADDTIME(page_special_time, '36:00:00') < NOW()"""
         cursor.execute(query, (self.CHART_ACCEPT, self.CHART_DECLINE))
 
     def update(self, kwargs):
-        """Update a page by name, regardless of whether anything has changed.
+        """Update old submissions, regardless of whether they've been edited.
 
-        Mainly intended as a command to be used via IRC, e.g.:
-        !tasks start afc_statistics action=update page=Foobar
+        This is intended to be run hourly, updating notes that change without
+        being triggering by a typical update (like a blocked submitter). It
+        also resolves conflicts when pages are tracked during high replag,
+        potentially causing data to be inaccurate (like a missed decline). By
+        default it updates the oldest ten pages in the database; this can be
+        changed by passing "limit" in kwargs with an integer.
         """
-        title = kwargs.get("page")
-        if not title:
+        self.logger.info("Starting update")
+
+        replag = self.site.get_replag()
+        self.logger.debug("Server replag is {0}".format(replag))
+        if replag > 600 and not kwargs.get("ignore_replag"):
+            msg = "Update canceled as replag ({0} secs) is greater than ten minutes"
+            self.logger.warn(msg.format(replag))
             return
 
-        title = title.replace("_", " ").decode("utf8")
-        query = "SELECT page_id, page_modify_oldid FROM page WHERE page_title = ?"
+        query = """SELECT page_id, page_title, page_modify_oldid
+                   FROM page JOIN updatelog ORDER BY update_time ASC LIMIT ?"""
         with self.conn.cursor() as cursor:
-            cursor.execute(query, (title,))
-            try:
-                pageid, oldid = cursor.fetchall()[0]
-            except IndexError:
-                msg = u"Page [[{0}]] not found in database".format(title)
-                self.logger.error(msg)
-
-            msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
-            self.logger.info(msg.format(title, pageid, oldid))
-            self._update_page(cursor, pageid, title)
+            cursor.execute(query, (kwargs.get("limit", 10),))
+            for pageid, title, oldid in cursor:
+                msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
+                self.logger.debug(msg.format(title, pageid, oldid))
+                try:
+                    self._update_page(cursor, pageid, title)
+                except Exception:
+                    e = u"Error updating page [[{0}]] (id: {1})"
+                    self.logger.exception(e.format(title, pageid))
+        self.logger.info("Update completed")
 
     ######################## PRIMARY PAGE ENTRY POINTS ########################
 
     def _untrack_page(self, cursor, pageid):
         """Remove a page, given by ID, from our database."""
         self.logger.debug("Untracking page (id: {0})".format(pageid))
-        query = """DELETE FROM page, row USING page JOIN row
-                   ON page_id = row_id WHERE page_id = ?"""
+        query = """DELETE FROM page, row, updatelog USING page JOIN row
+                   ON page_id = row_id JOIN updatelog ON page_id = update_id
+                   WHERE page_id = ?"""
         cursor.execute(query, (pageid,))
 
     def _track_page(self, cursor, pageid, title):
@@ -363,9 +374,11 @@ class AFCStatistics(Task):
 
         query1 = "INSERT INTO row VALUES (?, ?)"
         query2 = "INSERT INTO page VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        query3 = "INSERT INTO updatelog VALUES (?, ?)"
         cursor.execute(query1, (pageid, chart))
         cursor.execute(query2, (pageid, status, title, len(content), notes,
                                 m_user, m_time, m_id, s_user, s_time, s_id))
+        cursor.execute(query3, (pageid, datetime.utcnow()))
 
     def _update_page(self, cursor, pageid, title):
         """Update hook for when page is already in our database.
@@ -410,6 +423,9 @@ class AFCStatistics(Task):
         notes = self._get_notes(chart, content, m_time, s_user)
         if notes != result["page_notes"]:
             self._update_page_notes(cursor, result, pageid, notes)
+
+        query = "UPDATE updatelog SET update_time = ? WHERE update_id = ?"
+        cursor.execute(query, (datetime.utcnow(), pageid))
 
     ###################### PAGE ATTRIBUTE UPDATE METHODS ######################
 
