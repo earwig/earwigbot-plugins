@@ -497,6 +497,8 @@ class DRNClerkBot(Task):
             user = re.search("[:*#]{,5} \{\{User\|(.*?)\}\}", line)
             if user:
                 party = user.group(1).replace("_", " ").strip()
+                if party.startswith("User:"):
+                    party = party[len("User:"):]
                 if party:
                     party = party[0].upper() + party[1:]
                     if party == case.file_user:
