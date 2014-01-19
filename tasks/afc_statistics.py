@@ -520,7 +520,7 @@ class AFCStatistics(Task):
             content = res["query"]["pages"].values()[0]["revisions"][0]["*"]
         except KeyError:
             if tries == 0:
-                raise KeyError()
+                raise
             sleep(5)
             return self._get_revision_content(revid, tries=tries - 1)
         self.revision_cache[revid] = content
