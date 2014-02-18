@@ -101,8 +101,6 @@ class AFCStatistics(Task):
                     self.save(kwargs)
                 elif action == "sync":
                     self.sync(kwargs)
-                elif action == "update":
-                    self.update(kwargs)
             finally:
                 self.conn.close()
         finally:
@@ -219,6 +217,7 @@ class AFCStatistics(Task):
         with self.conn.cursor() as cursor:
             self._update_tracked(cursor)
             self._add_untracked(cursor)
+            self._update_stale(cursor)
             self._delete_old(cursor)
 
         self.logger.info("Sync completed")
@@ -293,6 +292,31 @@ class AFCStatistics(Task):
                 e = u"Error tracking page [[{0}]] (id: {1})"
                 self.logger.exception(e.format(title, pageid))
 
+    def update_stale(self, cursor):
+        """Update submissions that haven't been updated in a long time.
+
+        This is intended to update notes that change without typical update
+        triggers, like when submitters are blocked. It also resolves conflicts
+        when pages are tracked during high replag, potentially causing data to
+        be inaccurate (like a missed decline). It updates no more than the ten
+        stalest pages that haven't been updated in two days.
+        """
+        self.logger.info("Updating stale submissions")
+        query = """SELECT page_id, page_title, page_modify_oldid
+                   FROM page JOIN updatelog ON page_id = update_id
+                   WHERE ADDTIME(update_time, '48:00:00') < NOW()
+                   ORDER BY update_time ASC LIMIT 10"""
+        cursor.execute(query)
+
+        for pageid, title, oldid in cursor:
+            msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
+            self.logger.debug(msg.format(title, pageid, oldid))
+            try:
+                self._update_page(cursor, pageid, title)
+            except Exception:
+                e = u"Error updating page [[{0}]] (id: {1})"
+                self.logger.exception(e.format(title, pageid))
+
     def _delete_old(self, cursor):
         """Remove old submissions from the database.
 
@@ -305,39 +329,6 @@ class AFCStatistics(Task):
                    WHERE row_chart IN (?, ?)
                    AND ADDTIME(page_special_time, '36:00:00') < NOW()"""
         cursor.execute(query, (self.CHART_ACCEPT, self.CHART_DECLINE))
-
-    def update(self, kwargs):
-        """Update old submissions, regardless of whether they've been edited.
-
-        This is intended to be run hourly, updating notes that change without
-        being triggering by a typical update (like a blocked submitter). It
-        also resolves conflicts when pages are tracked during high replag,
-        potentially causing data to be inaccurate (like a missed decline). By
-        default it updates the oldest ten pages in the database; this can be
-        changed by passing "limit" in kwargs with an integer.
-        """
-        self.logger.info("Starting update")
-
-        replag = self.site.get_replag()
-        self.logger.debug("Server replag is {0}".format(replag))
-        if replag > 600 and not kwargs.get("ignore_replag"):
-            msg = "Update canceled as replag ({0} secs) is greater than ten minutes"
-            self.logger.warn(msg.format(replag))
-            return
-
-        query = """SELECT page_id, page_title, page_modify_oldid
-                   FROM page JOIN updatelog ORDER BY update_time ASC LIMIT ?"""
-        with self.conn.cursor() as cursor:
-            cursor.execute(query, (kwargs.get("limit", 10),))
-            for pageid, title, oldid in cursor:
-                msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
-                self.logger.debug(msg.format(title, pageid, oldid))
-                try:
-                    self._update_page(cursor, pageid, title)
-                except Exception:
-                    e = u"Error updating page [[{0}]] (id: {1})"
-                    self.logger.exception(e.format(title, pageid))
-        self.logger.info("Update completed")
 
     ######################## PRIMARY PAGE ENTRY POINTS ########################
 
