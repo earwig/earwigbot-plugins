@@ -346,7 +346,7 @@ class AFCStatistics(Task):
         A variety of SQL queries are used to gather information about the page,
         which is then saved to our database.
         """
-        content = self._get_content(title)
+        content = self._get_content(pageid)
         if content is None:
             msg = u"Could not get page content for [[{0}]]".format(title)
             self.logger.error(msg)
@@ -378,7 +378,7 @@ class AFCStatistics(Task):
         which is compared against our stored information. Differing information
         is then updated.
         """
-        content = self._get_content(title)
+        content = self._get_content(pageid)
         if content is None:
             msg = u"Could not get page content for [[{0}]]".format(title)
             self.logger.error(msg)
@@ -474,27 +474,15 @@ class AFCStatistics(Task):
 
     ###################### DATA RETRIEVAL HELPER METHODS ######################
 
-    def _get_content(self, title):
-        """Get the current content of a page by title from the API.
+    def _get_content(self, pageid):
+        """Get the current content of a page by ID from the API.
 
         The page's current revision ID is retrieved from SQL, and then
         an API query is made to get its content. This is the only API query
         used in the task's code.
         """
-        query = "SELECT page_latest FROM page WHERE page_title = ? AND page_namespace = ?"
-        try:
-            namespace, base = title.split(":", 1)
-        except ValueError:
-            base = title
-            ns = wiki.NS_MAIN
-        else:
-            try:
-                ns = self.site.namespace_name_to_id(namespace)
-            except exceptions.NamespaceNotFoundError:
-                base = title
-                ns = wiki.NS_MAIN
-
-        result = self.site.sql_query(query, (base.replace(" ", "_"), ns))
+        query = "SELECT page_latest FROM page WHERE page_id = ?"
+        result = self.site.sql_query(query, (pageid,))
         try:
             revid = int(list(result)[0][0])
         except IndexError:
