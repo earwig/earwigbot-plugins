@@ -72,7 +72,7 @@ DROP TABLE IF EXISTS `updatelog`;
 CREATE TABLE `updatelog` (
   `update_id` int(10) unsigned NOT NULL,
   `update_time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  PRIMARY KEY (`check_id`)
+  PRIMARY KEY (`update_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- Dump completed on 2014-01-10 11:00:00
