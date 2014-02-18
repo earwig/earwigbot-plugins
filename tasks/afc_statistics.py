@@ -292,7 +292,7 @@ class AFCStatistics(Task):
                 e = u"Error tracking page [[{0}]] (id: {1})"
                 self.logger.exception(e.format(title, pageid))
 
-    def update_stale(self, cursor):
+    def _update_stale(self, cursor):
         """Update submissions that haven't been updated in a long time.
 
         This is intended to update notes that change without typical update
