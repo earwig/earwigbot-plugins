@@ -312,10 +312,11 @@ class DRNClerkBot(Task):
             notices = self.clerk_needassist_case(case, volunteers, newsigs)
         elif case.status == self.STATUS_STALE:
             notices = self.clerk_stale_case(case, newsigs)
-        elif case.status in [self.STATUS_RESOLVED, self.STATUS_CLOSED,
-                             self.STATUS_FAILED]:
+        if case.status in [self.STATUS_RESOLVED, self.STATUS_CLOSED,
+                           self.STATUS_FAILED]:
             self.clerk_closed_case(case, signatures)
-        self.add_missing_reflist(case)
+        else:
+            self.add_missing_reflist(case)
         self.save_case_updates(conn, case, volunteers, signatures, storedsigs)
         return notices
 
@@ -515,10 +516,11 @@ class DRNClerkBot(Task):
     def add_missing_reflist(self, case):
         """Add {{reflist-talk}} to a case if it has <ref>s and no reflist."""
         code = mw_parse(case.body)
-        if code.filter_tags(matches=lambda t: t.name.lower() == "ref"):
+        reflist = "\n\n===References===\n{{reflist-talk|close=1}}\n\n"
+        if code.filter_tags(matches=lambda t: t.tag.lower() == "ref"):
             if any(s in case.body.lower() for s in ("reflist", "<references")):
                 return
-            case.body += "\n===References===\n{{reflist-talk|close=1}}\n"
+            case.body = case.body.rstrip() + reflist
 
     def save_case_updates(self, conn, case, volunteers, sigs, storedsigs):
         """Save any updates made to a case and signatures in the database."""
