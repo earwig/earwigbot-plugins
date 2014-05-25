@@ -104,13 +104,11 @@ class AFCCopyvios(Task):
 
         if result.violation:
             if self.handle_violation(title, page, result, url, orig_conf):
-                self._trial_reporter(title, False, url, orig_conf, result.queries, result.time, msg)
                 self.log_processed(pageid)
                 return
         else:
             msg = u"No violations detected in [[{0}]] (best: {1} at {2} confidence)"
             self.logger.info(msg.format(title, url, orig_conf))
-            self._trial_reporter(title, False, url, orig_conf, result.queries, result.time, msg)
 
         self.log_processed(pageid)
         if self.cache_results:
@@ -138,29 +136,14 @@ class AFCCopyvios(Task):
 
         msg = u"Found violation: [[{0}]] -> {1} ({2} confidence)"
         self.logger.info(msg.format(title, url, new_conf))
-        # safeurl = quote(url.encode("utf8"), safe="/:").decode("utf8")
-        # template = u"\{\{{0}|url={1}|confidence={2}\}\}\n"
-        # template = template.format(self.template, safeurl, new_conf)
-        # newtext = template + content
-        # if "{url}" in self.summary:
-        #     page.edit(newtext, self.summary.format(url=url))
-        # else:
-        #     page.edit(newtext, self.summary)
-        self._trial_reporter(title, True, url, new_conf, result.queries, result.time, msg)
-
-    def _trial_reporter(self, title, violation, url, conf, queries, time, msg):
-        from datetime import datetime
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
-        data = u"\n" + ("-" * 80) + u"\n"
-        data += u"[[{0}]] at {1}\n".format(title, date)
-        data += u"Violation?   {0}\n".format("***YES***" if violation else "No")
-        data += u"Confidence:  {0}\n".format(conf)
-        data += u"Best match:  {0}\n".format(url)
-        data += u"Num queries: {0}\n".format(queries)
-        data += u"Time:        {0}\n".format(time)
-        data += u"Log message: {0}\n".format(msg)
-        with open("/data/project/earwigbot/public_html/copyvio_bot_trial.txt", "a") as fp:
-            fp.write(data.encode("utf8"))
+        safeurl = quote(url.encode("utf8"), safe="/:").decode("utf8")
+        template = u"\{\{{0}|url={1}|confidence={2}\}\}\n"
+        template = template.format(self.template, safeurl, new_conf)
+        newtext = template + content
+        if "{url}" in self.summary:
+            page.edit(newtext, self.summary.format(url=url))
+        else:
+            page.edit(newtext, self.summary)
 
     def is_tagged(self, code):
         """Return whether a page contains a copyvio check template."""
