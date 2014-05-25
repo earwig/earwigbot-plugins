@@ -301,7 +301,7 @@ class AFCStatistics(Task):
         be inaccurate (like a missed decline). It updates no more than the ten
         stalest pages that haven't been updated in two days.
         """
-        self.logger.info("Updating stale submissions")
+        self.logger.debug("Updating stale submissions")
         query = """SELECT page_id, page_title, page_modify_oldid
                    FROM page JOIN updatelog ON page_id = update_id
                    WHERE ADDTIME(update_time, '48:00:00') < NOW()
