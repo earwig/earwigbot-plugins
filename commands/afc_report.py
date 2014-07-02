@@ -45,33 +45,19 @@ class AFCReport(Command):
             self.reply(data, msg)
             return
 
-        title = " ".join(data.args)
-        title = title.replace("http://en.wikipedia.org/wiki/", "")
-        title = title.replace("http://enwp.org/", "").strip()
-
-        # Given '!report Foo', first try [[Foo]]:
-        page = self.get_page(title)
-        if page:
-            return self.report(page)
-
-        # Then try [[Wikipedia:Articles for creation/Foo]]:
-        newtitle = "/".join(("Wikipedia:Articles for creation", title))
-        page = self.get_page(newtitle)
-        if page:
-            return self.report(page)
-
-        # Then try [[Wikipedia talk:Articles for creation/Foo]]:
-        newtitle = "/".join(("Wikipedia talk:Articles for creation", title))
-        page = self.get_page(newtitle)
-        if page:
-            return self.report(page)
+        title = " ".join(data.args).replace("http://en.wikipedia.org/wiki/",
+                "").replace("http://enwp.org/", "").strip()
+        titles = [
+            title, "Draft:" + title,
+            "Wikipedia:Articles for creation/" + title,
+            "Wikipedia talk:Articles for creation/" + title
+        ]
+        for attempt in titles:
+            page = self.site.get_page(attempt, follow_redirects=False)
+            if page.exists == page.PAGE_EXISTS:
+                return self.report(page)
 
         self.reply(data, "Submission \x0302{0}\x0F not found.".format(title))
-
-    def get_page(self, title):
-        page = self.site.get_page(title, follow_redirects=False)
-        if page.exists == page.PAGE_EXISTS:
-            return page
 
     def report(self, page):
         url = page.url.encode("utf8")

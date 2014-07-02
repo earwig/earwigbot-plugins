@@ -27,6 +27,8 @@ import mwparserfromhell
 from earwigbot.tasks import Task
 from earwigbot.wiki.constants import *
 
+NS_DRAFT = 118
+
 class AFCUndated(Task):
     """A task to clear [[Category:Undated AfC submissions]]."""
     name = "afc_undated"
@@ -38,7 +40,7 @@ class AFCUndated(Task):
         default_summary = "Adding timestamp to undated [[WP:AFC|Articles for creation]] submission."
         self.summary = self.make_summary(cfg.get("summary", default_summary))
         self.namespaces = {
-            "submission": [NS_USER, NS_PROJECT, NS_PROJECT_TALK],
+            "submission": [NS_USER, NS_PROJECT, NS_PROJECT_TALK, NS_DRAFT],
             "talk": [NS_TALK, NS_FILE_TALK, NS_TEMPLATE_TALK, NS_HELP_TALK,
                      NS_CATEGORY_TALK]
         }
