@@ -23,7 +23,7 @@
 from hashlib import sha256
 from os.path import expanduser
 from threading import Lock
-# from urllib import quote
+from urllib import quote
 
 import mwparserfromhell
 import oursql
@@ -103,7 +103,7 @@ class AFCCopyvios(Task):
         orig_conf = "{0}%".format(round(result.confidence * 100, 2))
 
         if result.violation:
-            if self.handle_violation(title, page, result, url, orig_conf):
+            if self.handle_violation(title, page, url, orig_conf):
                 self.log_processed(pageid)
                 return
         else:
@@ -114,7 +114,7 @@ class AFCCopyvios(Task):
         if self.cache_results:
             self.cache_result(page, result)
 
-    def handle_violation(self, title, page, result, url, orig_conf):
+    def handle_violation(self, title, page, url, orig_conf):
         """Handle a page that passed its initial copyvio check."""
         # Things can change in the minute that it takes to do a check.
         # Confirm that a violation still holds true:
@@ -202,14 +202,13 @@ class AFCCopyvios(Task):
         This will only be called if ``cache_results == True`` in the task's
         config, which is ``False`` by default.
         """
-        pageid = page.pageid
-        hash = sha256(page.get().encode("utf8")).hexdigest()
-        query1 = "SELECT 1 FROM cache WHERE cache_id = ?"
-        query2 = "DELETE FROM cache WHERE cache_id = ?"
-        query3 = "INSERT INTO cache VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?)"
+        query = """INSERT INTO cache
+                   VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, 0)
+                   ON DUPLICATE KEY UPDATE
+                   cache_url = ?, cache_time = CURRENT_TIMESTAMP,
+                   cache_queries = ?, cache_process_time = 0"""
+        shahash = sha256(page.get().encode("utf8")).hexdigest()
+        args = (page.pageid, shahash, result.url, result.queries, result.url,
+                result.queries)
         with self.conn.cursor() as cursor:
-            cursor.execute(query1, (pageid,))
-            if cursor.fetchall():
-                cursor.execute(query2, (pageid,))
-            args = (pageid, hash, result.url, result.queries, 0)
-            cursor.execute(query3, args)
+            cursor.execute(query, args)

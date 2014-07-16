@@ -20,7 +20,7 @@ CREATE TABLE `cache` (
   `cache_time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   `cache_queries` int(4) DEFAULT NULL,
   `cache_process_time` float DEFAULT NULL,
-  PRIMARY KEY (`cache_id`)
+  PRIMARY KEY (`cache_id`, `cache_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
