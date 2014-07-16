@@ -15,7 +15,7 @@ CREATE DATABASE `u_earwig_afc_copyvios`
 DROP TABLE IF EXISTS `cache`;
 CREATE TABLE `cache` (
   `cache_id` int(10) unsigned NOT NULL,
-  `cache_hash` char(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `cache_hash` char(64) COLLATE utf8_unicode_ci NOT NULL,
   `cache_url` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
   `cache_time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   `cache_queries` int(4) DEFAULT NULL,
