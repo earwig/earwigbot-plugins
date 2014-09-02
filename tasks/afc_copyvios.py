@@ -207,7 +207,8 @@ class AFCCopyvios(Task):
                    ON DUPLICATE KEY UPDATE
                    cache_url = ?, cache_time = CURRENT_TIMESTAMP,
                    cache_queries = ?, cache_process_time = 0"""
-        shahash = sha256(page.get().encode("utf8")).hexdigest()
+        mode = "1:1:"
+        shahash = sha256(mode + page.get().encode("utf8")).hexdigest()
         args = (page.pageid, shahash, result.url, result.queries, result.url,
                 result.queries)
         with self.conn.cursor() as cursor:
