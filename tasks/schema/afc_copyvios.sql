@@ -31,7 +31,7 @@ CREATE TABLE `cache_data` (
     `cdata_cache_id` BINARY(32) NOT NULL,
     `cdata_url` VARCHAR(512) NOT NULL,
     `cdata_confidence` FLOAT NOT NULL DEFAULT 0,
-    `cdata_skipped` BOOLEAN NOT NULL DEFAULT "false",
+    `cdata_skipped` BOOLEAN NOT NULL DEFAULT 0,
     PRIMARY KEY (`cdata_id`),
     FOREIGN KEY (`cdata_cache_id`)
         REFERENCES `cache` (`cache_id`)
