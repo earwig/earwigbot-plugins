@@ -206,13 +206,12 @@ class AFCCopyvios(Task):
         query1 = "DELETE FROM cache WHERE cache_id = ?"
         query2 = "INSERT INTO cache VALUES (?, DEFAULT, ?, ?)"
         query3 = "INSERT INTO cache_data VALUES (DEFAULT, ?, ?, ?, ?)"
-        cache_id = sha256("1:1:" + page.get().encode("utf8")).digest()
-        buff = buffer(cache_id)
-        data = [(buff, source.url, source.confidence, source.skipped)
+        cache_id = buffer(sha256("1:1:" + page.get().encode("utf8")).digest())
+        data = [(cache_id, source.url, source.confidence, source.skipped)
                 for source in result.sources]
         with self.conn.cursor() as cursor:
             cursor.execute("START TRANSACTION")
-            cursor.execute(query1, (buff,))
-            cursor.execute(query2, (buff, result.queries, result.time))
+            cursor.execute(query1, (cache_id,))
+            cursor.execute(query2, (cache_id, result.queries, result.time))
             cursor.executemany(query3, data)
             cursor.execute("COMMIT")
