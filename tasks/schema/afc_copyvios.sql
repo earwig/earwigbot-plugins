@@ -5,8 +5,8 @@
 -- Server version       5.1.59
 
 CREATE DATABASE `u_earwig_afc_copyvios`
-  DEFAULT CHARACTER SET utf8
-  DEFAULT COLLATE utf8_unicode_ci;
+    DEFAULT CHARACTER SET utf8
+    DEFAULT COLLATE utf8_unicode_ci;
 
 --
 -- Table structure for table `cache`
@@ -14,14 +14,29 @@ CREATE DATABASE `u_earwig_afc_copyvios`
 
 DROP TABLE IF EXISTS `cache`;
 CREATE TABLE `cache` (
-  `cache_id` int(10) unsigned NOT NULL,
-  `cache_hash` char(64) COLLATE utf8_unicode_ci NOT NULL,
-  `cache_url` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `cache_time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `cache_queries` int(4) DEFAULT NULL,
-  `cache_process_time` float DEFAULT NULL,
-  PRIMARY KEY (`cache_id`, `cache_hash`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    `cache_id` BINARY(32) NOT NULL,
+    `cache_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `cache_queries` INT(4) NOT NULL DEFAULT 0,
+    `cache_process_time` FLOAT NOT NULL DEFAULT 0,
+    PRIMARY KEY (`cache_id`)
+) ENGINE=InnoDB;
+
+--
+-- Table structure for table `cache_data`
+--
+
+DROP TABLE IF EXISTS `cache_data`;
+CREATE TABLE `cache_data` (
+    `cdata_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `cdata_cache_id` BINARY(32) NOT NULL,
+    `cdata_url` VARCHAR(512) NOT NULL,
+    `cdata_confidence` FLOAT NOT NULL DEFAULT 0,
+    `cdata_skipped` BOOLEAN NOT NULL DEFAULT "false",
+    PRIMARY KEY (`cdata_id`),
+    FOREIGN KEY (`cdata_cache_id`)
+        REFERENCES `cache` (`cache_id`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
 
 --
 -- Table structure for table `processed`
@@ -29,8 +44,8 @@ CREATE TABLE `cache` (
 
 DROP TABLE IF EXISTS `processed`;
 CREATE TABLE `processed` (
-  `page_id` int(10) unsigned NOT NULL,
-  PRIMARY KEY (`page_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    `page_id` INT(10) UNSIGNED NOT NULL,
+    PRIMARY KEY (`page_id`)
+) ENGINE=InnoDB;
 
--- Dump completed on 2012-07-20 20:21:00
+-- Dump completed on 2014-08-04 20:00:00

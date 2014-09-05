@@ -40,7 +40,7 @@ class AFCCopyvios(Task):
         cfg = self.config.tasks.get(self.name, {})
         self.template = cfg.get("template", "AfC suspected copyvio")
         self.ignore_list = cfg.get("ignoreList", [])
-        self.min_confidence = cfg.get("minConfidence", 0.5)
+        self.min_confidence = cfg.get("minConfidence", 0.75)
         self.max_queries = cfg.get("maxQueries", 10)
         self.max_time = cfg.get("maxTime", 150)
         self.cache_results = cfg.get("cacheResults", False)
@@ -187,29 +187,31 @@ class AFCCopyvios(Task):
     def cache_result(self, page, result):
         """Store the check's result in a cache table temporarily.
 
-        The cache contains the page's ID, a hash of its content, the URL of the
-        best match, the time of caching, and the number of queries used. It
-        will replace any existing cache entries for that page.
+        The cache contains some data associated with the hash of the page's
+        contents. This data includes the number of queries used, the time to
+        detect a violation, and a list of sources, which store their respective
+        URLs, confidence values, and skipped states.
 
-        The cache is intended for EarwigBot's complementary Toolserver web
+        The cache is intended for EarwigBot's complementary Tool Labs web
         interface, in which copyvio checks can be done separately from the bot.
         The cache saves time and money by saving the result of the web search
         but neither the result of the comparison nor any actual text (which
         could violate data retention policy). Cache entries are (intended to
         be) retained for three days; this task does not remove old entries
-        (that is handled by the Toolserver component).
+        (that is handled by the Tool Labs component).
 
         This will only be called if ``cache_results == True`` in the task's
         config, which is ``False`` by default.
         """
-        query = """INSERT INTO cache
-                   VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, 0)
-                   ON DUPLICATE KEY UPDATE
-                   cache_url = ?, cache_time = CURRENT_TIMESTAMP,
-                   cache_queries = ?, cache_process_time = 0"""
-        mode = "1:1:"
-        shahash = sha256(mode + page.get().encode("utf8")).hexdigest()
-        args = (page.pageid, shahash, result.url, result.queries, result.url,
-                result.queries)
+        query1 = "DELETE FROM cache WHERE cache_id = ?"
+        query2 = "INSERT INTO cache VALUES (?, DEFAULT, ?, ?)"
+        query3 = "INSERT INTO cache_data VALUES (DEFAULT, ?, ?, ?, ?)"
+        cache_id = sha256("1:1:" + page.get().encode("utf8")).digest()
+        data = [(cache_id, source.url, source.confidence, source.skipped)
+                for source in result.sources]
         with self.conn.cursor() as cursor:
-            cursor.execute(query, args)
+            cursor.execute("START TRANSACTION")
+            cursor.execute(query1, (cache_id,))
+            cursor.execute(query2, (cache_id, result.queries, result.time))
+            cursor.executemany(query3, data)
+            cursor.execute("COMMIT")
