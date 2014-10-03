@@ -29,7 +29,7 @@ DROP TABLE IF EXISTS `cache_data`;
 CREATE TABLE `cache_data` (
     `cdata_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `cdata_cache_id` BINARY(32) NOT NULL,
-    `cdata_url` VARCHAR(512) NOT NULL,
+    `cdata_url` VARCHAR(1024) NOT NULL,
     `cdata_confidence` FLOAT NOT NULL DEFAULT 0,
     `cdata_skipped` BOOLEAN NOT NULL DEFAULT 0,
     PRIMARY KEY (`cdata_id`),
