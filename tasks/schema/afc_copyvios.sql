@@ -18,6 +18,7 @@ CREATE TABLE `cache` (
     `cache_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `cache_queries` INT(4) NOT NULL DEFAULT 0,
     `cache_process_time` FLOAT NOT NULL DEFAULT 0,
+    `cache_possible_miss` BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (`cache_id`)
 ) ENGINE=InnoDB;
 
