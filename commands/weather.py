@@ -95,7 +95,7 @@ class Weather(Command):
                 desc = "An unknown error occurred."
             self.reply(data, desc)
         elif "current_observation" in res:
-            msg = self.format_weather(res["current_observation"])
+            msg = self.format_weather(res)
             self.reply(data, msg)
         elif "results" in res["response"]:
             msg = self.format_ambiguous_result(res)
@@ -103,11 +103,12 @@ class Weather(Command):
         else:
             self.reply(data, "An unknown error occurred.")
 
-    def format_weather(self, data):
+    def format_weather(self, res):
         """Format the weather (as dict *data*) to be sent through IRC."""
+        data = res["current_observation"]
         place = data["display_location"]["full"]
         icon = self.get_icon(data["icon"], data["local_time_rfc822"],
-                             data["sun_phase"])
+                             res["sun_phase"])
         weather = data["weather"]
         temp_f, temp_c = data["temp_f"], data["temp_c"]
         humidity = data["relative_humidity"]
