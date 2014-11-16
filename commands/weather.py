@@ -107,7 +107,7 @@ class Weather(Command):
         """Format the weather (as dict *data*) to be sent through IRC."""
         place = data["display_location"]["full"]
         icon = self.get_icon(data["icon"], data["local_time_rfc822"],
-                             data["sunrise"], data["sunset"])
+                             data["sun_phase"])
         weather = data["weather"]
         temp_f, temp_c = data["temp_f"], data["temp_c"]
         humidity = data["relative_humidity"]
@@ -126,7 +126,7 @@ class Weather(Command):
                 msg += " ({0}″ past hour)".format(data["precip_1hr_in"])
         return msg
 
-    def get_icon(self, condition, local_time, sunrise, sunset):
+    def get_icon(self, condition, local_time, sun_phase):
         """Return a unicode icon to describe the given weather condition."""
         icons = {
             "chanceflurries" : "☃",
@@ -155,11 +155,11 @@ class Weather(Command):
                 lt_no_tz = local_time.rsplit(" ", 1)[0]
                 dt = datetime.strptime(lt_no_tz, "%a, %d %b %Y %H:%M:%S")
                 srise = datetime(year=dt.year, month=dt.month, day=dt.day,
-                                 hour=int(sunrise["hour"]),
-                                 minute=int(sunrise["minute"]))
+                                 hour=int(sun_phase["sunrise"]["hour"]),
+                                 minute=int(sun_phase["sunrise"]["minute"]))
                 sset = datetime(year=dt.year, month=dt.month, day=dt.day,
-                                hour=int(sunset["hour"]),
-                                minute=int(sunset["minute"]))
+                                hour=int(sun_phase["sunset"]["hour"]),
+                                minute=int(sun_phase["sunset"]["minute"]))
                 return icon[int(srise < dt < sset)]
             return icon
         except KeyError:
