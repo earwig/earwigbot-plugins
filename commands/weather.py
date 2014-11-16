@@ -108,7 +108,7 @@ class Weather(Command):
         data = res["current_observation"]
         place = data["display_location"]["full"]
         icon = self.get_icon(data["icon"], data["local_time_rfc822"],
-                             res["sun_phase"])
+                             res["sun_phase"]).encode("utf8")
         weather = data["weather"]
         temp_f, temp_c = data["temp_f"], data["temp_c"]
         humidity = data["relative_humidity"]
@@ -130,25 +130,25 @@ class Weather(Command):
     def get_icon(self, condition, local_time, sun_phase):
         """Return a unicode icon to describe the given weather condition."""
         icons = {
-            "chanceflurries" : "☃",
-            "chancerain" : "☂",
-            "chancesleet" : "☃",
-            "chancesnow" : "☃",
-            "chancetstorms" : "☂",
-            "clear" : "☽☀",
-            "cloudy" : "☁",
-            "flurries" : "☃",
-            "fog" : "☁",
-            "hazy" : "☁",
-            "mostlycloudy" : "☁",
-            "mostlysunny" : "☽☀",
-            "partlycloudy" : "☁",
-            "partlysunny" : "☽☀",
-            "rain" : "☂",
-            "sleet" : "☃",
-            "snow" : "☃",
-            "sunny" : "☽☀",
-            "tstorms" : "☂",
+            "chanceflurries": u"☃",
+            "chancerain": u"☂",
+            "chancesleet": u"☃",
+            "chancesnow": u"☃",
+            "chancetstorms": u"☂",
+            "clear": u"☽☀",
+            "cloudy": u"☁",
+            "flurries": u"☃",
+            "fog": u"☁",
+            "hazy": u"☁",
+            "mostlycloudy": u"☁",
+            "mostlysunny": u"☽☀",
+            "partlycloudy": u"☁",
+            "partlysunny": u"☽☀",
+            "rain": u"☂",
+            "sleet": u"☃",
+            "snow": u"☃",
+            "sunny": u"☽☀",
+            "tstorms": u"☂",
         }
         try:
             icon = icons[condition]
@@ -164,7 +164,7 @@ class Weather(Command):
                 return icon[int(srise < dt < sset)]
             return icon
         except KeyError:
-            return "?"
+            return u"?"
 
     def format_ambiguous_result(self, res):
         """Format a message when there are multiple possible results."""
