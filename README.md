@@ -37,6 +37,15 @@ IRC Commands
   `"praises"` with the key `"earwig"` and the value
   `"Earwig is the bestest Python programmer ever!"`.
 
+- **urbandictionary**: looks up terms on
+  [Urban Dictionary](https://www.urbandictionary.com/). Separated from the main
+  command list because these are often distasteful or unwanted.
+
+- **weather**: gives current weather information for a location from
+  [Weather Underground](http://www.wunderground.com/). Requires an API key
+  stored in its config as `"apiKey"`, which should be stored encrypted if that
+  option is enabled.
+
 Bot Tasks
 ---------
 

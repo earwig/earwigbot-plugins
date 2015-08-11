@@ -13,8 +13,7 @@ from earwigbot.commands import Command
 class UrbanDictionary(Command):
     """Get the definition of a word or phrase using Urban Dictionary."""
     name = "urban"
-    commands = ["urban", "urbandictionary", "dictt", "definee", "defne", "dct",
-                "ud"]
+    commands = ["urban", "urbandictionary", "dct", "ud"]
 
     def process(self, data):
         if not data.args:
