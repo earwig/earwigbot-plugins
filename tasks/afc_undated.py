@@ -1,6 +1,6 @@
 # -*- coding: utf-8  -*-
 #
-# Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
+# Copyright (C) 2009-2015 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -62,16 +62,16 @@ class AFCUndated(Task):
         logmsg = u"Undated category [[{0}]] has {1} members"
         self.logger.info(logmsg.format(category.title, category.size))
         if category.size:
-            self.build_aliases()
+            self._build_aliases()
             counter = 0
             for page in category:
                 if not counter % 10:
                     if self.shutoff_enabled():
                         return
-                self.process_page(page)
+                self._process_page(page)
                 counter += 1
 
-    def build_aliases(self):
+    def _build_aliases(self):
         """Build template name aliases for the AFC templates."""
         for key in self.aliases:
             base = self.aliases[key][0]
@@ -86,7 +86,7 @@ class AFCUndated(Task):
                     aliases.append(redir.title.split(":", 1)[1])
             self.aliases[key] = aliases
 
-    def process_page(self, page):
+    def _process_page(self, page):
         """Date the necessary templates inside a page object."""
         if not page.check_exclusion():
             msg = u"Skipping [[{0}]]; bot excluded from editing"
@@ -97,10 +97,10 @@ class AFCUndated(Task):
         is_talk = page.namespace in self.namespaces["talk"]
         if is_sub:
             aliases = self.aliases["submission"]
-            timestamp = self.get_timestamp(page)
+            timestamp = self._get_timestamp(page)
         elif is_talk:
             aliases = self.aliases["talk"]
-            timestamp, reviewer = self.get_talkdata(page)
+            timestamp, reviewer = self._get_talkdata(page)
         else:
             msg = u"[[{0}]] is undated, but in a namespace I don't know how to process"
             self.logger.warn(msg.format(page.title))
@@ -127,7 +127,7 @@ class AFCUndated(Task):
             msg = u"[[{0}]] is undated, but I can't figure out what to replace"
             self.logger.warn(msg.format(page.title))
 
-    def get_timestamp(self, page):
+    def _get_timestamp(self, page):
         """Get the timestamp associated with a particular submission."""
         self.logger.debug(u"[[{0}]]: Getting timestamp".format(page.title))
         result = self.site.api_query(
@@ -142,7 +142,7 @@ class AFCUndated(Task):
         ts = datetime.strptime(raw, "%Y-%m-%dT%H:%M:%SZ")
         return ts.strftime("%Y%m%d%H%M%S")
 
-    def get_talkdata(self, page):
+    def _get_talkdata(self, page):
         """Get the timestamp and reviewer associated with a talkpage.
 
         This is the mover for a normal article submission, and the uploader for
@@ -154,18 +154,23 @@ class AFCUndated(Task):
             self.logger.warn(log.format(page.title))
             return None, None
         if subject.namespace == NS_FILE:
-            return self.get_filedata(subject)
+            self.logger.debug(u"[[{0}]]: Getting filedata".format(page.title))
+            return self._get_filedata(subject)
+
         self.logger.debug(u"[[{0}]]: Getting talkdata".format(page.title))
         user, ts, revid = self.statistics.get_accepted(subject.pageid)
         if not ts:
+            if subject.is_redirect or subject.namespace == NS_CATEGORY:
+                log = u"[[{0}]]: Couldn't get talkdata; trying redir/cat data"
+                self.logger.debug(log.format(page.title))
+                return self._get_redirdata(subject)
             log = u"Couldn't get talkdata for [[{0}]]"
             self.logger.warn(log.format(page.title))
             return None, None
         return ts.strftime("%Y%m%d%H%M%S"), user
 
-    def get_filedata(self, page):
+    def _get_filedata(self, page):
         """Get the timestamp and reviewer associated with a file talkpage."""
-        self.logger.debug(u"[[{0}]]: Getting filedata".format(page.title))
         result = self.site.api_query(action="query", prop="imageinfo",
                                      titles=page.title)
         data = result["query"]["pages"].values()[0]
@@ -176,3 +181,16 @@ class AFCUndated(Task):
         info = data["imageinfo"][0]
         ts = datetime.strptime(info["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
         return ts.strftime("%Y%m%d%H%M%S"), info["user"]
+
+    def _get_redirdata(self, page):
+        """Get the timestamp and reviewer for a redirect/category talkpage."""
+        result = self.site.api_query(
+            action="query", prop="revisions", rvprop="timestamp|user",
+            rvlimit=1, rvdir="newer", titles=page.title)
+        if "batchcomplete" not in result:
+            log = u"Couldn't get redir/cat talkdata for [[{0}]]: has multiple revisions"
+            self.logger.warn(log.format(page.title))
+            return None, None
+        rev = result["query"]["pages"].values()[0]["revisions"][0]
+        ts = datetime.strptime(rev["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
+        return ts.strftime("%Y%m%d%H%M%S"), rev["user"]
