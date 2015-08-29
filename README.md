@@ -37,6 +37,9 @@ IRC Commands
   `"praises"` with the key `"earwig"` and the value
   `"Earwig is the bestest Python programmer ever!"`.
 
+- **stars**: gets the number of stargazers for (i.e., people starring) a given
+  [GitHub](https://github.com/) repository.
+
 - **urbandictionary**: looks up terms on
   [Urban Dictionary](https://www.urbandictionary.com/). Separated from the main
   command list because these are often distasteful or unwanted.
