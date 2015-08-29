@@ -41,9 +41,9 @@ class Stars(Command):
         repo = data.args[0]
         info = self.get_repo(repo)
         if info is None:
-            self.reply(data, "Repository not found. It could be private.")
+            self.reply(data, "Repository not found. Is it private?")
         else:
-            msg = "\x0303{0}\x0F has \x02{1}\x0F stargazers: {2}."
+            msg = "\x0303{0}\x0F has \x02{1}\x0F stargazers: {2}"
             self.reply(data, msg.format(
                 info["full_name"], info["stargazers_count"], info["html_url"]))
 
@@ -52,7 +52,10 @@ class Stars(Command):
 
         Return None if the repo doesn't exist or is private.
         """
-        query = urlopen(self.API_URL.format(repo=repo)).read()
+        try:
+            query = urlopen(self.API_URL.format(repo=repo)).read()
+        except HTTPError:
+            return None
         res = loads(query)
         if res and "id" in res and not res["private"]:
             return res
