@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from json import loads
-from urllib2 import urlopen
+from urllib2 import urlopen, HTTPError
 
 from earwigbot.commands import Command
 
