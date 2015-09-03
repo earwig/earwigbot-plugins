@@ -39,6 +39,9 @@ class Stars(Command):
             return
 
         repo = data.args[0]
+        if '/' not in repo:
+            # Assume we're talking about an Earwig repo
+            repo = 'earwig/' + repo
         info = self.get_repo(repo)
         if info is None:
             self.reply(data, "Repository not found. Is it private?")
