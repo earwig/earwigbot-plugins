@@ -43,9 +43,11 @@ class Stars(Command):
         if info is None:
             self.reply(data, "Repository not found. Is it private?")
         else:
-            msg = "\x0303{0}\x0F has \x02{1}\x0F stargazers: {2}"
+            count = int(info["stargazers_count"])
+            plural = "" if count == 1 else "s"
+            msg = "\x0303{0}\x0F has \x02{1}\x0F stargazer{2}: {3}"
             self.reply(data, msg.format(
-                info["full_name"], info["stargazers_count"], info["html_url"]))
+                info["full_name"], count, plural, info["html_url"]))
 
     def get_repo(self, repo):
         """Return the API JSON dump for a given repository.
