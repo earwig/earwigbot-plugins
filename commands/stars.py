@@ -76,7 +76,7 @@ class Stars(Command):
             name = arg
             url = "https://github.com/{0}".format(name)
 
-        msg = "\x0303{0}\x0F has \x02{1}\x0F stargazer{2} across {3} repo{4}: {5}"
+        msg = "\x0303{0}\x0F has \x02{1}\x0F stargazer{2} across \x02{3}\x0F repo{4}: {5}"
         self.reply(data, msg.format(
             name, star_count, star_plural, len(repos), repo_plural, url))
 
