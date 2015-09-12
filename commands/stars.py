@@ -30,7 +30,7 @@ class Stars(Command):
     name = "stars"
     commands = ["stars", "stargazers"]
     API_REPOS = "https://api.github.com/repos/{repo}"
-    API_USERS = "https://api.github.com/users/{user}/repos"
+    API_USERS = "https://api.github.com/users/{user}/repos?per_page=100"
     EXAMPLE = "!stars earwig/earwigbot"
 
     def process(self, data):
@@ -67,8 +67,12 @@ class Stars(Command):
             return
 
         star_count = sum(repo["stargazers_count"] for repo in repos)
+        repo_count = len(repos)
         star_plural = "" if star_count == 1 else "s"
         repo_plural = "" if len(repos) == 1 else "s"
+        if len(repos) == 100:
+            star_count = "{0}+".format(star_count)
+            repo_count = "{0}+".format(repo_count)
         if len(repos) > 0:
             name = repos[0]["owner"]["login"]
             url = repos[0]["owner"]["html_url"]
@@ -78,7 +82,7 @@ class Stars(Command):
 
         msg = "\x0303{0}\x0F has \x02{1}\x0F stargazer{2} across \x02{3}\x0F repo{4}: {5}"
         self.reply(data, msg.format(
-            name, star_count, star_plural, len(repos), repo_plural, url))
+            name, star_count, star_plural, repo_count, repo_plural, url))
 
     def get_repo(self, repo):
         """Return the API JSON dump for a given repository.
