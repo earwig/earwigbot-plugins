@@ -29,6 +29,7 @@ class Welcome(Command):
     """Welcome people who enter certain channels."""
     name = "welcome"
     commands = ["welcome", "greet"]
+    hooks = ["join", "msg"]
 
     def setup(self):
         try:
@@ -99,7 +100,8 @@ class Welcome(Command):
                     self.reply(data, msg.format(data.arg[1]))
                 else:
                     self.disabled.append(data.arg[1])
-                    msg = "Disabled welcoming in \x02{0}\x0F."
+                    msg = ("Disabled welcoming in \x02{0}\x0F. Re-enable with "
+                           "\x0306!welcome enable {0}\x0F.")
                     self.reply(data, msg.format(data.arg[1]))
             elif data.arg[0] == "enable":
                 if len(data.arg) < 2:
