@@ -29,7 +29,7 @@ class Welcome(Command):
     """Welcome people who enter certain channels."""
     name = "welcome"
     commands = ["welcome", "greet"]
-    hooks = ["join", "msg"]
+    hooks = ["join", "part", "msg"]
 
     def setup(self):
         try:
@@ -40,12 +40,13 @@ class Welcome(Command):
 
         self._throttle = False
         self._last_join = 0
+        self._pending = []
 
     def check(self, data):
         if data.is_command and data.command in self.commands:
             return True
         try:
-            if data.line[1] != "JOIN":
+            if data.line[1] != "JOIN" and data.line[1] != "PART":
                 return False
         except IndexError:
             pass
@@ -56,6 +57,11 @@ class Welcome(Command):
     def process(self, data):
         if data.is_command:
             self.process_command(data)
+            return
+
+        if data.line[1] == "PART":
+            if (data.chan, data.nick) in self._pending:
+                self._pending.remove((data.chan, data.nick))
             return
 
         this_join = time()
@@ -77,10 +83,19 @@ class Welcome(Command):
 
     def _callback(self, data):
         """Internal callback function."""
+        self._pending.append((data.chan, data.nick))
         sleep(2)
+
         if data.chan in self.disabled or self._throttle:
             return
+        if (data.chan, data.nick) not in self._pending:
+            return
         self.say(data.chan, self.channels[data.chan].format(nick=data.nick))
+
+        try:
+            self._pending.remove((data.chan, data.nick))
+        except ValueError:
+            pass  # Could be a race condition
 
     def process_command(self, data):
         """Handle this when it is an explicit command, not a channel join."""
