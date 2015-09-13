@@ -103,32 +103,32 @@ class Welcome(Command):
             if not self.config.irc["permissions"].is_admin(data):
                 msg = "You must be a bot admin to use this command."
                 self.reply(data, msg)
-            elif data.arg[0] == "disable":
-                if len(data.arg) < 2:
+            elif data.args[0] == "disable":
+                if len(data.args) < 2:
                     self.reply(data, "Which channel should I disable?")
-                elif data.arg[1] in self.disabled:
+                elif data.args[1] in self.disabled:
                     msg = "Welcoming in \x02{0}\x0F is already disabled."
-                    self.reply(data, msg.format(data.arg[1]))
-                elif data.arg[1] not in self.channels:
+                    self.reply(data, msg.format(data.args[1]))
+                elif data.args[1] not in self.channels:
                     msg = ("I'm not welcoming people in \x02{0}\x0F. "
                            "Only the bot owner can add new channels.")
-                    self.reply(data, msg.format(data.arg[1]))
+                    self.reply(data, msg.format(data.args[1]))
                 else:
-                    self.disabled.append(data.arg[1])
+                    self.disabled.append(data.args[1])
                     msg = ("Disabled welcoming in \x02{0}\x0F. Re-enable with "
                            "\x0306!welcome enable {0}\x0F.")
-                    self.reply(data, msg.format(data.arg[1]))
-            elif data.arg[0] == "enable":
-                if len(data.arg) < 2:
+                    self.reply(data, msg.format(data.args[1]))
+            elif data.args[0] == "enable":
+                if len(data.args) < 2:
                     self.reply(data, "Which channel should I enable?")
-                elif data.arg[1] not in self.disabled:
+                elif data.args[1] not in self.disabled:
                     msg = ("I don't have welcoming disabled in \x02{0}\x0F. "
                            "Only the bot owner can add new channels.")
-                    self.reply(data, msg.format(data.arg[1]))
+                    self.reply(data, msg.format(data.args[1]))
                 else:
-                    self.disabled.remove(data.arg[1])
+                    self.disabled.remove(data.args[1])
                     msg = "Enabled welcoming in \x02{0}\x0F."
-                    self.reply(data, msg.format(data.arg[1]))
+                    self.reply(data, msg.format(data.args[1]))
             else:
                 self.reply(data, "I don't understand that command.")
         else:
