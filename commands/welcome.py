@@ -90,32 +90,32 @@ class Welcome(Command):
             elif data.arg[0] == "disable":
                 if len(data.arg) < 2:
                     self.reply(data, "Which channel should I disable?")
-                elif data.arg[1] in self.disable:
+                elif data.arg[1] in self.disabled:
                     msg = "Welcoming in \x02{0}\x0F is already disabled."
                     self.reply(data, msg.format(data.arg[1]))
                 elif data.arg[1] not in self.channels:
-                    msg = "I'm not welcoming people in \x02{0}\x0F. "
-                          "Only the bot owner can add new channels."
+                    msg = ("I'm not welcoming people in \x02{0}\x0F. "
+                           "Only the bot owner can add new channels.")
                     self.reply(data, msg.format(data.arg[1]))
                 else:
-                    self.disable.append(data.arg[1])
+                    self.disabled.append(data.arg[1])
                     msg = "Disabled welcoming in \x02{0}\x0F."
                     self.reply(data, msg.format(data.arg[1]))
             elif data.arg[0] == "enable":
                 if len(data.arg) < 2:
                     self.reply(data, "Which channel should I enable?")
-                elif data.arg[1] not in self.disable:
-                    msg = "I don't have welcoming disabled in \x02{0}\x0F. "
-                          "Only the bot owner can add new channels."
+                elif data.arg[1] not in self.disabled:
+                    msg = ("I don't have welcoming disabled in \x02{0}\x0F. "
+                           "Only the bot owner can add new channels.")
                     self.reply(data, msg.format(data.arg[1]))
                 else:
-                    self.disable.remove(data.arg[1])
+                    self.disabled.remove(data.arg[1])
                     msg = "Enabled welcoming in \x02{0}\x0F."
                     self.reply(data, msg.format(data.arg[1]))
             else:
                 self.reply(data, "I don't understand that command.")
         else:
-            msg = "This command welcomes people who enter certain channels. "
-                  "I am welcoming people in: {0}. A bot admin can disable me "
-                  "with \x0306!welcome disable [channel]\x0F."
+            msg = ("This command welcomes people who enter certain channels. "
+                   "I am welcoming people in: {0}. A bot admin can disable me "
+                   "with \x0306!welcome disable [channel]\x0F.")
             self.reply(data, msg.format(", ".join(self.channels.keys())))
