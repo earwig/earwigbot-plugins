@@ -65,7 +65,7 @@ class Welcome(Command):
             return
 
         this_join = time()
-        if this_join - self._last_join < 5:
+        if this_join - self._last_join < 3:
             self._throttle = True
         else:
             self._throttle = False
@@ -84,7 +84,7 @@ class Welcome(Command):
     def _callback(self, data):
         """Internal callback function."""
         self._pending.append((data.chan, data.nick))
-        sleep(2)
+        sleep(1.5)
 
         if data.chan in self.disabled or self._throttle:
             return
