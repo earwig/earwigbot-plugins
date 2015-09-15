@@ -49,6 +49,13 @@ IRC Commands
   stored in its config as `"apiKey"`, which should be stored encrypted if that
   option is enabled.
 
+- **welcome**: automatically welcomes people who join a particular channel.
+  Welcoming is restricted to web IRC users, i.e. users whose hostname starts
+  with `gateway/web/`. In the command's config section, use channel names as
+  keys and welcome messages as values; the string `{nick}` will be replaced by
+  their nickname. The `!welcome` command can be used by bot admins to enable or
+  disable welcomes in a particular channel.
+
 Bot Tasks
 ---------
 
