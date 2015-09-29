@@ -33,6 +33,7 @@ CREATE TABLE `cache_data` (
     `cdata_url` VARCHAR(1024) NOT NULL,
     `cdata_confidence` FLOAT NOT NULL DEFAULT 0,
     `cdata_skipped` BOOLEAN NOT NULL DEFAULT 0,
+    `cdata_excluded` BOOLEAN NOT NULL DEFAULT 0,
     PRIMARY KEY (`cdata_id`),
     FOREIGN KEY (`cdata_cache_id`)
         REFERENCES `cache` (`cache_id`)
@@ -49,4 +50,4 @@ CREATE TABLE `processed` (
     PRIMARY KEY (`page_id`)
 ) ENGINE=InnoDB;
 
--- Dump completed on 2014-08-04 20:00:00
+-- Dump completed on 2015-09-29 02:30:00
