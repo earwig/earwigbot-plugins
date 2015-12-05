@@ -99,7 +99,7 @@ class InfoboxStation(Task):
             return
 
         summary = self.summary.format(
-            source="{{" + search + "}}", dest="{{" + self._replacement + "}}",
+            source="{{" + search + "}}", dest=self._replacement,
             discussion=args[3])
         page.edit(unicode(code), summary, minor=True)
 
@@ -128,4 +128,4 @@ class InfoboxStation(Task):
 
         results = self.site.sql_query(query, (
             constants.NS_TEMPLATE, title.replace(" ", "_"), constants.NS_MAIN))
-        return [title for (title,) in results]
+        return [title.replace("_", " ") for (title,) in results]
