@@ -95,3 +95,6 @@ Bot Tasks
   is in `tasks/schema/drn_clerkbot.sql`.
 
 - **image_display_resize**: resizes upscaled portraits in infoboxes.
+
+- **infobox_station**: replaces specific deprecated infoboxes following a
+  template discussion.
