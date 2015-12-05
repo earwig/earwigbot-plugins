@@ -117,7 +117,7 @@ class InfoboxStation(Task):
                     code.replace(prev, prev[:-1])
                 code.insert_before(tmpl, cats + "\n\n")
 
-    def _get_transclusions(self, title):
+    def _get_transclusions(self, tmpl):
         """
         Return a list of mainspace translusions of the given template.
         """
@@ -127,5 +127,5 @@ class InfoboxStation(Task):
         WHERE tl_namespace = ? AND tl_title = ? AND tl_from_namespace = ?"""
 
         results = self.site.sql_query(query, (
-            constants.NS_TEMPLATE, title.replace(" ", "_"), constants.NS_MAIN))
-        return [title.replace("_", " ") for (title,) in results]
+            constants.NS_TEMPLATE, tmpl.replace(" ", "_"), constants.NS_MAIN))
+        return [title.decode("utf8").replace("_", " ") for (title,) in results]
