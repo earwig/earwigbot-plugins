@@ -68,15 +68,14 @@ class InfoboxStation(Task):
         self.logger.info("Replacing {0} infobox template".format(name))
 
         count = 0
-        for search in args[0]:
-            for title in self._get_transclusions(search):
-                count += 1
-                if count % 10 == 0 and self.shutoff_enabled():
-                    return
-                page = self.site.get_page(title)
-                self._process_page(page, search, args)
+        for title in self._get_transclusions(args[0][0]):
+            count += 1
+            if count % 10 == 0 and self.shutoff_enabled():
+                return
+            page = self.site.get_page(title)
+            self._process_page(page, args)
 
-    def _process_page(self, page, search, args):
+    def _process_page(self, page, args):
         """
         Process a single page to replace a template.
         """
@@ -87,7 +86,7 @@ class InfoboxStation(Task):
 
         code = mwparserfromhell.parse(page.get(), skip_style_tags=True)
         for tmpl in code.filter_templates():
-            if tmpl.name.matches(search):
+            if tmpl.name.matches(args[0]):
                 tmpl.name = "subst:" + args[2]
                 self._add_cats(code, unicode(tmpl))
                 tmpl.name = "subst:" + args[1]
@@ -99,7 +98,7 @@ class InfoboxStation(Task):
             return
 
         summary = self.summary.format(
-            source="{{" + search + "}}", dest=self._replacement,
+            source="{{" + args[0][0] + "}}", dest=self._replacement,
             discussion=args[3])
         page.edit(unicode(code), summary, minor=True)
 
