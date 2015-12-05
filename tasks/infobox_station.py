@@ -36,7 +36,7 @@ class InfoboxStation(Task):
     number = 20
 
     def setup(self):
-        self.site = self.bot.wiki.getsite()
+        self.site = self.bot.wiki.get_site()
         self._targets = {
             "China": (
                 ["Infobox China station", "Infobox china station"],
