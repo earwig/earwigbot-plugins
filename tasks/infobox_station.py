@@ -88,8 +88,9 @@ class InfoboxStation(Task):
         for tmpl in code.filter_templates():
             if tmpl.name.matches(args[0]):
                 tmpl.name = "subst:" + args[2]
-                self._add_cats(code, unicode(tmpl))
+                cats = self._get_cats(page, unicode(tmpl))
                 tmpl.name = "subst:" + args[1]
+                self._add_cats(code, cats)
                 break
 
         if code == page.get():
@@ -104,17 +105,35 @@ class InfoboxStation(Task):
 
     def _add_cats(self, code, cats):
         """Add category data (*cats*) to wikicode."""
-        for link in code.ifilter_wikilinks():
-            if link.title.lower().startswith("category:"):
-                code.insert_before(link, cats + "\n")
-                return
+        current_cats = code.filter_wikilinks(
+            matches=lambda link: link.title.lower().startswith("category:"))
+        norm = lambda cat: cat.title.lower()[len("category:"):].strip()
+
+        catlist = [cat for cat in cats if not any(
+            norm(cur) == norm(cat) for cur in current_cats)]
+        if not catlist:
+            return
+        text = "\n".join(catlist)
+
+        if current_cats:
+            code.insert_before(current_cats[0], text + "\n")
+            return
 
         for tmpl in code.filter_templates():
             if tmpl.name.lower().endswith("stub"):
                 prev = code.get(code.index(tmpl) - 1)
                 if prev.endswith("\n\n"):
                     code.replace(prev, prev[:-1])
-                code.insert_before(tmpl, cats + "\n\n")
+                code.insert_before(tmpl, text + "\n\n")
+
+    def _get_cats(self, page, tmpl):
+        """
+        Return the categories that should be added to the page.
+        """
+        result = self.site.api_query(action="parse", title=page.title,
+                                     prop="text", onlypst=1, text=tmpl)
+        text = result["parse"]["text"]["*"]
+        return mwparserfromhell.parse(text).filter_wikilinks()
 
     def _get_transclusions(self, tmpl):
         """
