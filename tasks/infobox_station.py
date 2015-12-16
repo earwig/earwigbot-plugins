@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 from __future__ import unicode_literals
+from time import sleep
 
 from earwigbot.tasks import Task
 from earwigbot.wiki import constants
@@ -52,16 +53,18 @@ class InfoboxStation(Task):
             ),
         }
         self._replacement = "{{Infobox station}}"
+        self._sleep_time = 6
         self.summary = self.make_summary(
             "Replacing {source} with {dest} per [[{discussion}|TfD]].")
 
     def run(self, **kwargs):
+        limit = int(kwargs.get("limit"), 0)
         for name, args in self._targets.items():
             if self.shutoff_enabled():
                 return
-            self._replace(name, args)
+            self._replace(name, args, limit)
 
-    def _replace(self, name, args):
+    def _replace(self, name, args, limit=0):
         """
         Replace a template in all pages that transclude it.
         """
@@ -69,11 +72,17 @@ class InfoboxStation(Task):
 
         count = 0
         for title in self._get_transclusions(args[0][0]):
+            if limit > 0 and count >= limit:
+                logmsg = "Reached limit of {0} edits for {1} infoboxes"
+                self.logger.info(logmsg.format(limit, name))
+                return
             count += 1
-            if count % 10 == 0 and self.shutoff_enabled():
+            if count % 5 == 0 and self.shutoff_enabled():
                 return
             page = self.site.get_page(title)
             self._process_page(page, args)
+
+        self.logger.info("All {0} infoboxes updated".format(name))
 
     def _process_page(self, page, args):
         """
@@ -102,6 +111,7 @@ class InfoboxStation(Task):
             source="{{" + args[0][0] + "}}", dest=self._replacement,
             discussion=args[3])
         page.edit(unicode(code), summary, minor=True)
+        sleep(self._sleep_time)
 
     def _add_cats(self, code, cats):
         """Add category data (*cats*) to wikicode."""
