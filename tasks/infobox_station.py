@@ -100,7 +100,6 @@ class InfoboxStation(Task):
                 cats = self._get_cats(page, unicode(tmpl))
                 tmpl.name = "subst:" + args[1]
                 self._add_cats(code, cats)
-                break
 
         if code == page.get():
             msg = "Couldn't figure out what to edit in [[{0}]]"
