@@ -119,7 +119,7 @@ class InfoboxStation(Task):
             matches=lambda link: link.title.lower().startswith("category:"))
         norm = lambda cat: cat.title.lower()[len("category:"):].strip()
 
-        catlist = [cat for cat in cats if not any(
+        catlist = [unicode(cat) for cat in cats if not any(
             norm(cur) == norm(cat) for cur in current_cats)]
         if not catlist:
             return
