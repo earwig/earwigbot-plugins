@@ -53,7 +53,7 @@ class InfoboxStation(Task):
             ),
         }
         self._replacement = "{{Infobox station}}"
-        self._sleep_time = 6
+        self._sleep_time = 2
         self.summary = self.make_summary(
             "Replacing {source} with {dest} per [[{discussion}|TfD]].")
 
@@ -94,13 +94,14 @@ class InfoboxStation(Task):
             return
 
         code = mwparserfromhell.parse(page.get(), skip_style_tags=True)
+        cats = []
         for tmpl in code.filter_templates():
             if tmpl.name.matches(args[0]):
                 tmpl.name = "subst:" + args[2]
-                cats = self._get_cats(page, unicode(tmpl))
+                cats.extend(self._get_cats(page, unicode(tmpl)))
                 tmpl.name = "subst:" + args[1]
-                self._add_cats(code, cats)
 
+        self._add_cats(code, cats)
         if code == page.get():
             msg = "Couldn't figure out what to edit in [[{0}]]"
             self.logger.warn(msg.format(page.title))
