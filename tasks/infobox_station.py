@@ -58,7 +58,7 @@ class InfoboxStation(Task):
             "Replacing {source} with {dest} per [[{discussion}|TfD]].")
 
     def run(self, **kwargs):
-        limit = int(kwargs.get("limit"), 0)
+        limit = int(kwargs.get("limit", kwargs.get("edits", 0)))
         for name, args in self._targets.items():
             if self.shutoff_enabled():
                 return
