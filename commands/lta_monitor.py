@@ -60,13 +60,28 @@ class LTAMonitor(Command):
 
         site = self.bot.wiki.get_site()
         try:
-            result = site.api_query(action="query", list="blocks", bkip=ip, bklimit=1)
+            result = site.api_query(action="query", list="blocks", bkip=ip,
+                                    bklimit=1, bkprop="user|reason|range")
         except APIError:
             return
         blocks = result["query"]["blocks"]
         if not blocks:
             return
+        block = blocks[0]
 
-        msg = ("\x02[Alert]\x0F Joined user \x02{nick}\x0F is IP-blocked "
-               "on-wiki ([[User:{user}]] by {by}) because: {reason}")
-        self.say(self._report_chan, msg.format(nick=data.nick, **blocks[0]))
+        if re.search(r"web[ _-]?host", block["reason"], re.IGNORECASE):
+            block["note"] = "webhost warning"
+        else:
+            block["note"] = "alert"
+        if block["rangestart"] != block["rangeend"]:
+            block["type"] = "range"
+        else:
+            block["type"] = "IP-"
+
+        msg = ("\x02[{note}]\x0F Joined user \x02{nick}\x0F is {type}blocked "
+               "on-wiki ([[User:{user}]]) because: {reason}")
+        self.say(self._report_chan, msg.format(nick=data.nick, **block))
+
+        log = ("Reporting block ({note}): {nick} is [[User:{user}]], "
+               "{type}blocked because: {reason}")
+        self.logger.info(log.format(nick=data.nick, **block))
