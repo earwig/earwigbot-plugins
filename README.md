@@ -29,6 +29,8 @@ IRC Commands
   [GitPython](http://packages.python.org/GitPython), which can be installed
   with `pip install GitPython`.
 
+- **lta_monitor**: monitors for LTAs. No further information is available.
+
 - **praise**: adds a simple way for the bot respond to ad-hoc commands based on
   entries in `praise`'s config (in the `"praises"` dictionary). Its original
   intention was to implement silly "easter eggs" praising certain users; for
@@ -36,6 +38,11 @@ IRC Commands
   programmer ever!". This would be implemented by having an entry in
   `"praises"` with the key `"earwig"` and the value
   `"Earwig is the bestest Python programmer ever!"`.
+
+- **rc_monitor**: monitors the recent changes feed for certain edits and
+  reports them to a dedicated channel. The channel is stored under the
+  `"channel"` key in the command's dictionary. Reportable edits match various
+  heuristics, like urgent speedy taggings.
 
 - **stars**: gets the number of stargazers for (i.e., people starring) a given
   [GitHub](https://github.com/) repository.
