@@ -58,25 +58,9 @@ class LTAMonitor(Command):
         if len(self._recent) > self._recent_max:
             self._recent.pop(0)
 
-        site = self.bot.wiki.get_site()
-        try:
-            result = site.api_query(action="query", list="blocks", bkip=ip,
-                                    bklimit=1, bkprop="user|reason|range")
-        except APIError:
+        block = self._get_block_for_ip(ip)
+        if not block:
             return
-        blocks = result["query"]["blocks"]
-        if not blocks:
-            return
-        block = blocks[0]
-
-        if re.search(r"web[ _-]?host", block["reason"], re.IGNORECASE):
-            block["note"] = "webhost warning"
-        else:
-            block["note"] = "alert"
-        if block["rangestart"] != block["rangeend"]:
-            block["type"] = "range"
-        else:
-            block["type"] = "IP-"
 
         msg = ("\x02[{note}]\x0F Joined user \x02{nick}\x0F is {type}blocked "
                "on-wiki ([[User:{user}]]) because: {reason}")
@@ -85,3 +69,32 @@ class LTAMonitor(Command):
         log = ("Reporting block ({note}): {nick} is [[User:{user}]], "
                "{type}blocked because: {reason}")
         self.logger.info(log.format(nick=data.nick, **block))
+
+    def _get_block_for_ip(self, ip):
+        """Return a dictionary of blockinfo for an IP."""
+        site = self.bot.wiki.get_site()
+        try:
+            result = site.api_query(
+                action="query", list="blocks|globalblocks", bkip=ip, bgip=ip,
+                bklimit=1, bglimit=1, bkprop="user|reason|range",
+                bgprop="address|reason|range")
+        except APIError:
+            return
+        lblocks = result["query"]["blocks"]
+        gblocks = result["query"]["globalblocks"]
+        if not lblocks and not gblocks:
+            return
+
+        block = lblocks[0] if lblocks else gblocks[0]
+        if block["rangestart"] != block["rangeend"]:
+            block["type"] = "range"
+        else:
+            block["type"] = "IP-"
+        if not lblocks:
+            block["type"] = "globally " + block["type"]
+
+        if re.search(r"web[ _-]?host", block["reason"], re.IGNORECASE):
+            block["note"] = "webhost warning"
+        else:
+            block["note"] = "alert"
+        return block
