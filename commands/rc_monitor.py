@@ -38,6 +38,7 @@ class RCMonitor(Command):
     """Monitors the recent changes feed for certain edits and reports them to a
     dedicated channel."""
     name = "rc_monitor"
+    commands = ["rc_monitor", "rcm"]
     hooks = ["msg", "rc"]
 
     def setup(self):
@@ -71,7 +72,7 @@ class RCMonitor(Command):
         if not self._channel:
             return
         return isinstance(data, RC) or (
-            data.is_command and data.command == self.name)
+            data.is_command and data.command in self.commands)
 
     def process(self, data):
         if isinstance(data, RC):
