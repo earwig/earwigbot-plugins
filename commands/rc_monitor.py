@@ -94,19 +94,25 @@ class RCMonitor(Command):
     def _prepare_reports(self):
         """Set up internal tables for storing report information."""
         routine = 1
+        alert = 2
         urgent = 3
 
         self._levels = {
             routine: "routine",
-            # ...
+            alert: "alert",
+            urgent: "URGENT"
         }
         self._issues = {
             "random": routine,
             "random2": urgent,
             # ...
+            "g10": alert
         }
         self._descriptions = {
+            "random": "common random test",
+            "random2": "rare random test",
             # ...
+            "g10": "CSD G10 nomination"
         }
 
     def _evaluate(self, event):
