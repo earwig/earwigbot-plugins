@@ -20,8 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from collections import deque
 from datetime import datetime
+from Queue import Queue
 from threading import Thread
 
 from earwigbot.commands import Command
@@ -51,7 +51,7 @@ class RCMonitor(Command):
         self._levels = {}
         self._issues = {}
         self._descriptions = {}
-        self._queue = deque()
+        self._queue = Queue()
 
         self._thread = Thread(target=self._callback, name="rc_monitor")
         self._thread.daemon = True
@@ -67,8 +67,8 @@ class RCMonitor(Command):
 
     def process(self, data):
         if isinstance(data, RC):
-            newlen = len(self._queue) + 1
-            self._queue.append(data)
+            newlen = self._queue.qsize() + 1
+            self._queue.put(data)
             if newlen > self._stats["max_backlog"]:
                 self._stats["max_backlog"] = newlen
             return
@@ -82,14 +82,13 @@ class RCMonitor(Command):
         rate = self._stats["edits"] / seconds
         msg = ("\x02{edits:,}\x0F edits checked since {since} "
                "(\x02{rate:.2f}\x0F edits/sec); \x02{hits:,}\x0F hits; "
-               "\x02{backlog:,}\x0F-edit backlog (\x02{max_backlog:,}\x0F "
-               "max).")
+               "\x02{qsize:,}\x0F-edit backlog (\x02{max_backlog:,}\x0F max).")
         self.reply(data, msg.format(
-            since=since, rate=rate, backlog=len(self._queue), **self._stats))
+            since=since, rate=rate, qsize=self._queue.qsize(), **self._stats))
 
     def unload(self):
         self._thread.running = False
-        self._queue.append(None)
+        self._queue.put(None)
 
     def _prepare_reports(self):
         """Set up internal tables for storing report information."""
@@ -158,7 +157,7 @@ class RCMonitor(Command):
     def _callback(self):
         """Internal callback for the RC monitor thread."""
         while self._thread.running:
-            event = self._queue.popleft()
+            event = self._queue.get()
             if not self._thread.running:
                 break
             self._handle_event(event)
