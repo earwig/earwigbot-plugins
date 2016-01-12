@@ -126,7 +126,7 @@ class RCMonitor(Command):
         try:
             result = site.api_query(
                 action="query", prop="revisions", rvprop="ids|content",
-                revids=oldrev + "|" + newrev)
+                revids=(oldrev + "|" + newrev) if oldrev else newrev)
         except APIError:
             return None
 
@@ -137,6 +137,14 @@ class RCMonitor(Command):
         if len(pages) != 1:
             return None
         revs = pages[0]["revisions"]
+
+        if not oldrev:
+            try:
+                text = revs[0]["*"]
+            except (IndexError, KeyError):
+                return None
+            return _Diff(text.splitlines(), [])
+
         try:
             oldtext = [rv["*"] for rv in revs if rv["revid"] == int(oldrev)][0]
             newtext = [rv["*"] for rv in revs if rv["revid"] == int(newrev)][0]
@@ -172,9 +180,9 @@ class RCMonitor(Command):
                 return None
             self._redirects[template] = redirects
 
-        search = "|".join("(template:)?" + re.escape(tmpl).replace(" ", "[ _]")
+        search = "|".join(r"(template:)?" + re.escape(tmpl).replace(r"\ ", r"[ _]")
                           for tmpl in self._redirects[template])
-        return re.compile(r"\{\{\s*" + search + r"\s*(\||\}\})", re.U|re.I)
+        return re.compile(r"\{\{\s*(" + search + r")\s*(\||\}\})", re.U|re.I)
 
     def _evaluate_csd(self, diff):
         """Evaluate a diff for CSD tagging."""
@@ -190,10 +198,12 @@ class RCMonitor(Command):
         """Return heuristic information about the given RC event."""
         oldrev = re.search(r"(?:\?|&)oldid=(.*?)(?:&|$)", event.url)
         newrev = re.search(r"(?:\?|&)diff=(.*?)(?:&|$)", event.url)
-        if not oldrev or not newrev:
+        if not oldrev:
             return []
-
-        diff = self._get_diff(oldrev.group(1), newrev.group(1))
+        if newrev:
+            diff = self._get_diff(oldrev.group(1), newrev.group(1))
+        else:
+            diff = self._get_diff(None, oldrev.group(1))
         if not diff:
             return []
 
