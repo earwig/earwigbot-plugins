@@ -20,12 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from collections import namedtuple
 from datetime import datetime
+from difflib import ndiff
 from Queue import Queue
+import re
 from threading import Thread
 
 from earwigbot.commands import Command
+from earwigbot.exceptions import APIError
 from earwigbot.irc import RC
+from earwigbot.wiki import constants
+
+_Diff = namedtuple("_Diff", ["added", "removed"])
 
 class RCMonitor(Command):
     """Monitors the recent changes feed for certain edits and reports them to a
@@ -51,6 +58,7 @@ class RCMonitor(Command):
         self._levels = {}
         self._issues = {}
         self._descriptions = {}
+        self._redirects = {}
         self._queue = Queue()
 
         self._thread = Thread(target=self._callback, name="rc_monitor")
@@ -102,31 +110,94 @@ class RCMonitor(Command):
             urgent: "URGENT"
         }
         self._issues = {
-            "random": routine,
-            "random2": urgent,
-            # ...
             "g10": alert
         }
         self._descriptions = {
-            "random": "common random test",
-            "random2": "rare random test",
-            # ...
             "g10": "CSD G10 nomination"
         }
 
+    def _get_diff(self, oldrev, newrev):
+        """Return the difference between two revisions.
+
+        A diff is a 2-tuple: (list of lines added, list of lines removed).
+        """
+        site = self.bot.wiki.get_site()
+        try:
+            result = site.api_query(
+                action="query", prop="revisions", rvprop="ids|content",
+                revids=oldrev + "|" + newrev)
+        except APIError:
+            return None
+
+        try:
+            pages = result["query"]["pages"].values()
+        except IndexError:
+            return None
+        if len(pages) != 1:
+            return None
+        revs = pages[0]["revisions"]
+        try:
+            oldtext = [rv["*"] for rv in revs if rv["revid"] == int(oldrev)][0]
+            newtext = [rv["*"] for rv in revs if rv["revid"] == int(newrev)][0]
+        except (IndexError, KeyError):
+            return None
+
+        lines = list(ndiff(oldtext.splitlines(), newtext.splitlines()))
+        added = [line[2:] for line in lines if line[:2] == "+ "]
+        removed = [line[2:] for line in lines if line[:2] == "- "]
+        return _Diff(added, removed)
+
+    def _fetch_redirects(self, template):
+        """Return a list of valid names for a given template."""
+        site = self.bot.wiki.get_site()
+        try:
+            result = site.api_query(
+                action="query", list="backlinks", blfilterredir="redirects",
+                blnamespace=constants.NS_TEMPLATE, bllimit=50,
+                bltitle="Template:" + template)
+        except APIError:
+            return []
+
+        redirs = {link["title"].split(":", 1)[1].lower()
+                  for link in result["query"]["backlinks"]}
+        redirs.add(template)
+        return redirs
+
+    def _fast_template_search(self, template):
+        """Return a compiled regular expression for matching templates."""
+        if template not in self._redirects:
+            redirects = self._fetch_redirects(template)
+            if not redirects:
+                return None
+            self._redirects[template] = redirects
+
+        search = "|".join("(template:)?" + re.escape(tmpl).replace(" ", "[ _]")
+                          for tmpl in self._redirects[template])
+        return re.compile(r"\{\{\s*" + search + r"\s*(\||\}\})", re.U|re.I)
+
+    def _evaluate_csd(self, diff):
+        """Evaluate a diff for CSD tagging."""
+        regex = self._fast_template_search("db-g10")
+        if not regex:
+            return []
+
+        if any(regex.search(line) for line in diff.added):
+            return ["g10"]
+        return []
+
     def _evaluate(self, event):
         """Return heuristic information about the given RC event."""
+        oldrev = re.search(r"(?:\?|&)oldid=(.*?)(?:&|$)", event.url)
+        newrev = re.search(r"(?:\?|&)diff=(.*?)(?:&|$)", event.url)
+        if not oldrev or not newrev:
+            return []
+
+        diff = self._get_diff(oldrev.group(1), newrev.group(1))
+        if not diff:
+            return []
+
         issues = []
-
-        # TODO
-        from random import random
-        rand = random()
-        if rand < 0.05:
-            issues.append("random")
-        if rand < 0.01:
-            issues.append("random2")
-        # END TODO
-
+        issues.extend(self._evaluate_csd(diff))
         issues.sort(key=lambda issue: self._issues[issue], reverse=True)
         return issues
 
@@ -146,7 +217,7 @@ class RCMonitor(Command):
 
     def _handle_event(self, event):
         """Process a recent change event."""
-        if not event.is_edit:
+        if not event.is_edit or "B" in event.flags:
             return
         report = self._evaluate(event)
         self._stats["edits"] += 1
