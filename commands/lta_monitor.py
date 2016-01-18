@@ -92,6 +92,7 @@ class LTAMonitor(Command):
             block["type"] = "IP-"
         if not lblocks:
             block["type"] = "globally " + block["type"]
+            block["user"] = block["address"]
 
         if re.search(r"web[ _-]?host", block["reason"], re.IGNORECASE):
             block["note"] = "webhost warning"
