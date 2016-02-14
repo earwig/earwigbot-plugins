@@ -73,8 +73,8 @@ Bot Tasks
   violations using the bot's built-in copyvio checking support. Takes multiple
   config values, including connection info for a MySQL database to store
   processed pages and a cache (disabled by default; usable by the
-  [toolserver interface](https://toolserver.org/~earwig/copyvios)). A script to
-  create the database is in `tasks/schema/afc_copyvios.sql`.
+  [web interface](https://tools.wmflabs.org/copyvios)). A script to create the
+  database is in `tasks/schema/afc_copyvios.sql`.
 
 - **afc_dailycats**: creates daily, monthly, and yearly categories for AFC.
 
@@ -100,8 +100,6 @@ Bot Tasks
   updating case statuses, building a chart, and notifying users. Takes multiple
   config values, including MySQL database info. A script to create the database
   is in `tasks/schema/drn_clerkbot.sql`.
-
-- **image_display_resize**: resizes upscaled portraits in infoboxes.
 
 - **infobox_station**: replaces specific deprecated infoboxes following a
   template discussion.
