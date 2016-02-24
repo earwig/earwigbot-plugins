@@ -21,13 +21,14 @@
 # SOFTWARE.
 
 import re
+from time import time
 
 from earwigbot.commands import Command
 from earwigbot.exceptions import APIError
 
-class LTAMonitor(Command):
-    """Monitors for LTAs. No further information is available."""
-    name = "lta_monitor"
+class BlockMonitor(Command):
+    """Monitors for on-wiki blocked users joining a particular channel."""
+    name = "block_monitor"
     hooks = ["join", "part"]
 
     def setup(self):
@@ -38,8 +39,7 @@ class LTAMonitor(Command):
         except KeyError:
             self._monitor_chan = self._report_chan = None
             self.logger.warn("Cannot use without being properly configured")
-        self._recent = []
-        self._recent_max = 10
+        self._last = None
 
     def check(self, data):
         return (self._monitor_chan and self._report_chan and
@@ -52,11 +52,12 @@ class LTAMonitor(Command):
         if not match:
             return
         ip = match.group(1)
-        if ip in self._recent:
-            return
-        self._recent.append(ip)
-        if len(self._recent) > self._recent_max:
-            self._recent.pop(0)
+
+        if self._last and self._last[0] == ip:
+            if time() - self._last[1] < 60 * 5:
+                self._last = (ip, time())
+                return
+        self._last = (ip, time())
 
         block = self._get_block_for_ip(ip)
         if not block:
