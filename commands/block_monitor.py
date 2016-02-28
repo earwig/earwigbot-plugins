@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import re
+from socket import gaierror, gethostbyname
 from time import time
 
 from earwigbot.commands import Command
@@ -46,12 +47,9 @@ class BlockMonitor(Command):
                 data.chan == self._monitor_chan)
 
     def process(self, data):
-        if not data.host.startswith("gateway/web/"):
+        ip = self._get_ip(data.host)
+        if not ip:
             return
-        match = re.search(r"/ip\.(.*?)$", data.host)
-        if not match:
-            return
-        ip = match.group(1)
 
         if self._last and self._last[0] == ip:
             if time() - self._last[1] < 60 * 5:
@@ -70,6 +68,16 @@ class BlockMonitor(Command):
         log = ("Reporting block ({note}): {nick} is [[User:{user}]], "
                "{type}blocked because: {reason}")
         self.logger.info(log.format(nick=data.nick, **block))
+
+    def _get_ip(self, host):
+        """Return the IP corresponding to a particular hostname."""
+        match = re.search(r"/ip\.(.*?)$", host)
+        if match:
+            return match.group(1)
+        try:
+            return gethostbyname(host)
+        except gaierror:
+            return None
 
     def _get_block_for_ip(self, ip):
         """Return a dictionary of blockinfo for an IP."""
