@@ -30,7 +30,7 @@ from earwigbot.exceptions import APIError
 class BlockMonitor(Command):
     """Monitors for on-wiki blocked users joining a particular channel."""
     name = "block_monitor"
-    hooks = ["join", "part"]
+    hooks = ["join"]
 
     def setup(self):
         try:
