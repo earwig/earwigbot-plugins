@@ -27,10 +27,11 @@ class UrbanDictionary(Command):
         if res['result_type'] == 'exact':
             definition = re.sub(r"\s+", " ", res['list'][0]['definition'])
             example = re.sub(r"\s+", " ", res['list'][0]['example'])
+            url = res['list'][0]['permalink'].rsplit('/', 1)[0]
             if definition and definition[-1] not in (".", "!", "?"):
                 definition += "."
-            msg = '{0} \x02Example\x0F: {1}'.format(definition.encode("utf8"),
-                                                    example.encode("utf8"))
+            msg = '{0} \x02Example\x0F: {1} {2}'.format(
+                definition.encode("utf8"), example.encode("utf8"), url)
             self.reply(data, msg)
         elif res['result_type'] == 'fulltext':
             L = [i['word'] for i in res['list']]
