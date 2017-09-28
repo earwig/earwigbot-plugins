@@ -75,7 +75,7 @@ class BannerUntag(Task):
             else:
                 self.logger.info(u"Skipping [[%s]], not latest edit" % title)
                 donefile.write("%d\n" % pageid)
-                errfile.write(u"%s\n" % title)
+                errfile.write("%s\n" % title.encode("utf8"))
 
         if not stage2:
             return
