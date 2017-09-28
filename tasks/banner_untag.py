@@ -93,7 +93,7 @@ class BannerUntag(Task):
 
             self.logger.debug(u"Reverting one edit on [[%s]]" % title)
             page = self.site.get_page(title)
-            page.edit(content, self.make_summary(summary), minor=True)
+            page.edit(content, self.make_summary(self.summary), minor=True)
 
             donefile.write("%d\n" % pageid)
             if self.throttle:
