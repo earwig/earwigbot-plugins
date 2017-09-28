@@ -38,26 +38,27 @@ class BannerUntag(Task):
         done_file = kwargs["done-file"]
         error_file = kwargs["error-file"]
 
-        with open(rev_file) as fp:
-            data = fp.read().splitlines()
-
         with open(done_file) as donefp:
             done = [int(line) for line in donefp.read().splitlines()]
 
+        with open(rev_file) as fp:
+            data = [[int(x) for x in line.split("\t")]
+                    for line in fp.read().splitlines()]
+            data = [item for item in data if item[0] not in done]
+
         with open(error_file, "a") as errfp:
             with open(done_file, "a") as donefp:
-                self._process_data(data, done, errfp, donefp)
+                self._process_data(data, errfp, donefp)
 
-    def _process_data(self, data, done, errfile, donefile):
+    def _process_data(self, data, errfile, donefile):
         chunksize = 50
         for chunkidx in range((len(data) + chunksize - 1) / chunksize):
             chunk = data[chunkidx*chunksize:(chunkidx+1)*chunksize]
-            chunk = [[int(x) for x in line.split("\t")] for line in chunk]
             if self.shutoff_enabled():
                 return
-            self._process_chunk(chunk, done, errfile, donefile)
+            self._process_chunk(chunk, errfile, donefile)
 
-    def _process_chunk(self, chunk, done, errfile, donefile):
+    def _process_chunk(self, chunk, errfile, donefile):
         pageids_to_revids = dict(chunk)
         res = self.site.api_query(
             action="query", prop="revisions", rvprop="ids",
@@ -73,7 +74,6 @@ class BannerUntag(Task):
                 stage2.append(str(parentid))
             else:
                 self.logger.info(u"Skipping [[%s]], not latest edit" % title)
-                done.append(pageid)
                 donefile.write("%d\n" % pageid)
                 errfile.write(u"%s\n" % title)
 
@@ -95,7 +95,6 @@ class BannerUntag(Task):
             page = self.site.get_page(title)
             page.edit(content, self.summary, minor=True, bot=True)
 
-            done.append(pageid)
             donefile.write("%d\n" % pageid)
             if self.throttle:
                 time.sleep(self.throttle)
