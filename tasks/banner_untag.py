@@ -67,6 +67,11 @@ class BannerUntag(Task):
         stage2 = []
         for pagedata in res["query"]["pages"]:
             pageid = pagedata["pageid"]
+            if "title" not in pagedata:
+                self.logger.info(u"Skipping [[%s]], doesn't exist" % title)
+                donefile.write("%d\n" % pageid)
+                continue
+
             title = pagedata["title"]
             revid = pagedata["revisions"][0]["revid"]
             parentid = pagedata["revisions"][0]["parentid"]
