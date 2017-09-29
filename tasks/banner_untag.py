@@ -68,7 +68,7 @@ class BannerUntag(Task):
         for pagedata in res["query"]["pages"]:
             pageid = pagedata["pageid"]
             if "title" not in pagedata:
-                self.logger.info(u"Skipping [[%s]], doesn't exist" % title)
+                self.logger.info("Skipping pageid=%s, doesn't exist" % pageid)
                 donefile.write("%d\n" % pageid)
                 continue
 
