@@ -274,6 +274,7 @@ class AFCStatistics(Task):
         self.logger.debug("Adding untracked pending submissions")
         query1 = "SELECT page_id FROM page"
         query2 = """SELECT page_id, page_title, page_namespace
+                    FROM page
                     INNER JOIN categorylinks ON page_id = cl_from
                     WHERE cl_to = ?"""
 
