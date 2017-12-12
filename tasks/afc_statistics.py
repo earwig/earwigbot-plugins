@@ -1,6 +1,6 @@
 # -*- coding: utf-8  -*-
 #
-# Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
+# Copyright (C) 2009-2017 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -234,18 +234,21 @@ class AFCStatistics(Task):
         self._untrack_page().
         """
         self.logger.debug("Updating tracked submissions")
-        query = """SELECT s.page_id, s.page_title, s.page_modify_oldid,
-                          r.page_latest, r.page_title, r.page_namespace
-                   FROM page AS s
-                   LEFT JOIN {0}_p.page AS r ON s.page_id = r.page_id
-                   WHERE s.page_modify_oldid != r.page_latest
-                   OR r.page_id IS NULL"""
-        cursor.execute(query.format(self.site.name))
+        query1 = """SELECT page_id, page_title, page_modify_oldid
+                    FROM page"""
+        query2 = """SELECT page_latest, page_title, page_namespace
+                    FROM page WHERE page_id = ?"""
 
-        for pageid, title, oldid, real_oldid, real_title, real_ns in cursor:
-            if not real_oldid:
+        cursor.execute(query1)
+        for pageid, title, oldid in cursor.fetchall():
+            result = list(self.site.sql_query(query2, (pageid,)))
+            if not result:
                 self._untrack_page(cursor, pageid)
                 continue
+            real_oldid, real_title, real_ns = result[0]
+            if oldid == real_oldid:
+                continue
+
             msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
             self.logger.debug(msg.format(title, pageid, oldid))
             msg = u"  {0}: oldid: {1} -> {2}"
@@ -269,15 +272,19 @@ class AFCStatistics(Task):
         self.ignore_list, we will track it with self._track_page().
         """
         self.logger.debug("Adding untracked pending submissions")
-        query = """SELECT r.page_id, r.page_title, r.page_namespace
-                   FROM {0}_p.page AS r
-                   INNER JOIN {0}_p.categorylinks AS c ON r.page_id = c.cl_from
-                   LEFT JOIN page AS s ON r.page_id = s.page_id
-                   WHERE s.page_id IS NULL AND c.cl_to = ?"""
-        cursor.execute(query.format(self.site.name),
-                       (self.pending_cat.replace(" ", "_"),))
+        query1 = "SELECT page_id FROM page"
+        query2 = """SELECT page_id, page_title, page_namespace
+                    INNER JOIN categorylinks ON page_id = cl_from
+                    WHERE cl_to = ?"""
 
-        for pageid, title, ns in cursor:
+        cursor.execute(query1)
+        tracked = [pid for (pid,) in cursor.fetchall()]
+        pend_cat = self.pending_cat.replace(" ", "_")
+
+        for pageid, title, ns in self.site.sql_query(query2, (pend_cat,)):
+            if pageid in tracked:
+                continue
+
             title = title.decode("utf8").replace("_", " ")
             ns_name = self.site.namespace_id_to_name(ns)
             if ns_name:
