@@ -16,8 +16,12 @@ class UrbanDictionary(Command):
     commands = ["urban", "urbandictionary", "dct", "ud"]
 
     @staticmethod
-    def _normalize(word):
-        return re.sub(r"\W", "", word.lower())
+    def _normalize_term(term):
+        return re.sub(r"\W", "", term.lower())
+
+    @staticmethod
+    def _normalize_text(text):
+        return re.sub(r"\[(.*?)\]", "\\1", re.sub(r"\s+", " ", text))
 
     def process(self, data):
         if not data.args:
@@ -34,15 +38,15 @@ class UrbanDictionary(Command):
             return
 
         result = results[0]
-        definition = re.sub(r"\s+", " ", result["definition"])
-        example = re.sub(r"\s+", " ", result["example"])
+        definition = self._normalize_text(result["definition"])
+        example = self._normalize_text(result["example"])
         url = result["permalink"].rsplit("/", 1)[0]
         if definition and definition[-1] not in (".", "!", "?"):
             definition += "."
 
         msg = "{0} \x02Example\x0F: {1} {2}".format(
             definition.encode("utf8"), example.encode("utf8"), url)
-        if self._normalize(result["word"]) != self._normalize(arg):
+        if self._normalize_term(result["word"]) != self._normalize_term(arg):
             msg = "\x02{0}\x0F: {1}".format(result["word"].encode("utf8"), msg)
 
         self.reply(data, msg)
