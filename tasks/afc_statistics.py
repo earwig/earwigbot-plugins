@@ -1,6 +1,6 @@
 # -*- coding: utf-8  -*-
 #
-# Copyright (C) 2009-2017 Ben Kurtovic <ben.kurtovic@gmail.com>
+# Copyright (C) 2009-2019 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -708,12 +708,23 @@ class AFCStatistics(Task):
         short:      submission is less than a kilobyte in length
         resubmit:   submission was resubmitted after a previous decline
         old:        submission has not been touched in > 4 days
+        rejected:   submission was rejected, a more severe form of declined
         blocked:    submitter is currently blocked
         """
         notes = ""
 
-        ignored_charts = [self.CHART_NONE, self.CHART_ACCEPT, self.CHART_DECLINE]
+        ignored_charts = [self.CHART_NONE, self.CHART_ACCEPT]
         if chart in ignored_charts:
+            return notes
+
+        if chart == self.CHART_DECLINE:
+            # Decline is special, as only the rejected note is meaningful
+            code = mwparserfromhell.parse(content)
+            for tmpl in code.filter_templates():
+                if tmpl.name.strip().lower() == "afc submission":
+                    if tmpl.has("reject") and tmpl.get("reject").value:
+                        notes += "|nj=1"  # Submission was rejected
+                        break
             return notes
 
         copyvios = self.config.tasks.get("afc_copyvios", {})
