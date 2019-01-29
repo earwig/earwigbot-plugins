@@ -612,9 +612,12 @@ class AFCStatistics(Task):
 
     def get_accepted(self, pageid, content=None):
         """Return (acceptor, accept_ts, accept_revid) for the given page."""
-        query = """SELECT rev_user_text, rev_timestamp, rev_id FROM revision
-                   WHERE rev_comment LIKE "% moved page [[%]] to [[%]]%"
-                   AND rev_page = ? ORDER BY rev_timestamp DESC LIMIT 1"""
+        query = """SELECT rev_user_text, rev_timestamp, rev_id
+                   FROM revision
+                   LEFT JOIN comment ON rev_comment_id = comment_id
+                   WHERE rev_page = ?
+                   AND comment_text LIKE "% moved page [[%]] to [[%]]%"
+                   ORDER BY rev_timestamp DESC LIMIT 1"""
         result = self.site.sql_query(query, (pageid,))
         try:
             a_user, a_time, a_id = list(result)[0]
