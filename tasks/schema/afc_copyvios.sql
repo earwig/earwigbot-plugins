@@ -21,6 +21,7 @@ CREATE TABLE `cache` (
     `cache_possible_miss` BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (`cache_id`)
 ) ENGINE=InnoDB;
+CREATE INDEX `cache_time_idx` ON `cache` (`cache_time`);
 
 --
 -- Table structure for table `cache_data`
