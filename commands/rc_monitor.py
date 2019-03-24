@@ -126,6 +126,7 @@ class RCMonitor(Command):
         try:
             result = site.api_query(
                 action="query", prop="revisions", rvprop="ids|content",
+                rvslots="main",
                 revids=(oldrev + "|" + newrev) if oldrev else newrev)
         except APIError:
             return None
@@ -140,14 +141,16 @@ class RCMonitor(Command):
 
         if not oldrev:
             try:
-                text = revs[0]["*"]
+                text = revs[0]["slots"]["main"]["*"]
             except (IndexError, KeyError):
                 return None
             return _Diff(text.splitlines(), [])
 
         try:
-            oldtext = [rv["*"] for rv in revs if rv["revid"] == int(oldrev)][0]
-            newtext = [rv["*"] for rv in revs if rv["revid"] == int(newrev)][0]
+            oldtext = [rv["slots"]["main"]["*"] for rv in revs
+                       if rv["revid"] == int(oldrev)][0]
+            newtext = [rv["slots"]["main"]["*"] for rv in revs
+                       if rv["revid"] == int(newrev)][0]
         except (IndexError, KeyError):
             return None
 

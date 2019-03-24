@@ -86,15 +86,16 @@ class BannerUntag(Task):
             return
 
         res2 = self.site.api_query(
-            action="query", prop="revisions", rvprop="content",
+            action="query", prop="revisions", rvprop="content", rvslots="main",
             revids="|".join(stage2), formatversion=2)
 
         for pagedata in res2["query"]["pages"]:
-            if pagedata["revisions"][0]["contentmodel"] != "wikitext":
+            revision = pagedata["revisions"][0]["slots"]["main"]
+            if revision["contentmodel"] != "wikitext":
                 continue
             pageid = pagedata["pageid"]
             title = pagedata["title"]
-            content = pagedata["revisions"][0]["content"]
+            content = revision["content"]
 
             self.logger.debug(u"Reverting one edit on [[%s]]" % title)
             page = self.site.get_page(title)

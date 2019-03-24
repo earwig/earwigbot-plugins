@@ -502,9 +502,11 @@ class AFCStatistics(Task):
         if revid in self.revision_cache:
             return self.revision_cache[revid]
         res = self.site.api_query(action="query", prop="revisions",
-                                  revids=revid, rvprop="content")
+                                  rvprop="content", rvslots="main",
+                                  revids=revid)
         try:
-            content = res["query"]["pages"].values()[0]["revisions"][0]["*"]
+            revision = res["query"]["pages"].values()[0]["revisions"][0]
+            content = revision["slots"]["main"]["*"]
         except KeyError:
             if tries == 0:
                 raise
