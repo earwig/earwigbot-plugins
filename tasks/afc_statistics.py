@@ -571,8 +571,11 @@ class AFCStatistics(Task):
         This consists of the most recent editor, modification time, and the
         lastest revision ID.
         """
-        query = """SELECT rev_user_text, rev_timestamp, rev_id FROM revision
-                   JOIN page ON rev_id = page_latest WHERE page_id = ?"""
+        query = """SELECT actor_name, rev_timestamp, rev_id
+                   FROM revision
+                   JOIN page ON rev_id = page_latest
+                   JOIN actor ON rev_actor = actor_id
+                   WHERE page_id = ?"""
         result = self.site.sql_query(query, (pageid,))
         m_user, m_time, m_id = list(result)[0]
         timestamp = datetime.strptime(m_time, "%Y%m%d%H%M%S")
@@ -604,9 +607,10 @@ class AFCStatistics(Task):
 
     def get_create(self, pageid, content=None):
         """Return (creator, create_ts, create_revid) for the given page."""
-        query = """SELECT rev_user_text, rev_timestamp, rev_id
-                   FROM revision WHERE rev_id =
-                   (SELECT MIN(rev_id) FROM revision WHERE rev_page = ?)"""
+        query = """SELECT actor_name, rev_timestamp, rev_id
+                   FROM revision
+                   JOIN actor ON rev_actor = actor_id
+                   WHERE rev_id = (SELECT MIN(rev_id) FROM revision WHERE rev_page = ?)"""
         result = self.site.sql_query(query, (pageid,))
         c_user, c_time, c_id = list(result)[0]
         timestamp = datetime.strptime(c_time, "%Y%m%d%H%M%S")
@@ -614,9 +618,10 @@ class AFCStatistics(Task):
 
     def get_accepted(self, pageid, content=None):
         """Return (acceptor, accept_ts, accept_revid) for the given page."""
-        query = """SELECT rev_user_text, rev_timestamp, rev_id
+        query = """SELECT actor_name, rev_timestamp, rev_id
                    FROM revision
-                   LEFT JOIN comment ON rev_comment_id = comment_id
+                   JOIN actor ON rev_actor = actor_id
+                   JOIN comment ON rev_comment_id = comment_id
                    WHERE rev_page = ?
                    AND comment_text LIKE "% moved page [[%]] to [[%]]%"
                    ORDER BY rev_timestamp DESC LIMIT 1"""
@@ -659,8 +664,10 @@ class AFCStatistics(Task):
             return None
         user, stamp = max(submits, key=lambda pair: pair[1])
 
-        query = """SELECT rev_id FROM revision WHERE rev_page = ?
-                   AND rev_user_text = ? AND ABS(rev_timestamp - ?) <= 60
+        query = """SELECT rev_id
+                   FROM revision_userindex
+                   JOIN actor ON rev_actor = actor_id
+                   WHERE rev_page = ? AND actor_name = ? AND ABS(rev_timestamp - ?) <= 60
                    ORDER BY ABS(rev_timestamp - ?) ASC LIMIT 1"""
         result = self.site.sql_query(query, (pageid, user, stamp, stamp))
         try:
@@ -677,8 +684,10 @@ class AFCStatistics(Task):
 
         ``status_set(any(search_with)) && !status_set(any(search_without))``
         """
-        query = """SELECT rev_user_text, rev_timestamp, rev_id
-                   FROM revision WHERE rev_page = ? ORDER BY rev_id DESC"""
+        query = """SELECT actor_name, rev_timestamp, rev_id
+                   FROM revision
+                   JOIN actor ON rev_actor = actor_id
+                   WHERE rev_page = ? ORDER BY rev_id DESC"""
         result = self.site.sql_query(query, (pageid,))
 
         counter = 0
