@@ -38,14 +38,11 @@ _DEFAULT_PAGE_TEXT = """<noinclude><!-- You can edit anything on this page \
 except for content inside of <!-- stat begin/end -> and <!-- sig begin/end -> \
 without causing problems. Most of the chart can be modified by editing the \
 templates it uses, documented in [[Template:AFC statistics/doc]]. -->
-{{NOINDEX}}</noinclude>
+{{NOINDEX}}</noinclude>\
 <!-- stat begin --><!-- stat end -->
-<span style="font-style: italic; font-weight: bold;">Last updated by \
-{{#ifeq:{{REVISIONUSER:Template:AFC statistics}}|EarwigBot|<!-- sig begin -->\
-<!-- sig end -->|{{User|{{REVISIONUSER:Template:AFC statistics}}}} at \
-{{#time:H:i, j F Y "(UTC)"|{{REVISIONTIMESTAMP:Template:AFC statistics}}}}}}\
-</span><noinclude>
-{{Documentation}}</noinclude>
+<span style="font-style: italic; font-size: 85%%;">Last updated by \
+<!-- sig begin --><!-- sig end --></span>\
+<noinclude>{{Documentation|Template:%(pageroot)s/doc}}</noinclude>
 """
 
 class AFCStatistics(Task):
@@ -148,10 +145,10 @@ class AFCStatistics(Task):
         try:
             text = page.get()
         except exceptions.PageNotFoundError:
-            text = _DEFAULT_PAGE_TEXT
+            text = _DEFAULT_PAGE_TEXT % {"pageroot": self.pageroot}
 
         newtext = re.sub(u"<!-- stat begin -->(.*?)<!-- stat end -->",
-                         "<!-- stat begin -->\n" + chart + "\n<!-- stat end -->",
+                         "<!-- stat begin -->" + chart + "<!-- stat end -->",
                          text, flags=re.DOTALL)
         if newtext == text:
             self.logger.info(u"Chart for {} unchanged; not saving".format(name))
