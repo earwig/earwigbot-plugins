@@ -31,7 +31,7 @@ INSERT INTO `chart` VALUES
 (3,'reviewing','Being reviewed','Reviewer'),
 (4,'accepted','Recently accepted','Accepted'),
 (5,'declined','Recently declined','Declined'),
-(6,'created','Misplaced submissions','Created');
+(6,'misplaced','Misplaced submissions','Created');
 UNLOCK TABLES;
 
 --
