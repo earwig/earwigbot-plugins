@@ -140,9 +140,9 @@ class AFCStatistics(Task):
 
         statistics = self._compile_charts()
         for name, chart in statistics.iteritems():
-            self._save_page(name, chart)
+            self._save_page(name, chart, summary)
 
-    def _save_page(self, name, chart):
+    def _save_page(self, name, chart, summary):
         """Save a statistics chart to a single page."""
         page = self.site.get_page(u"{}/{}".format(self.pageroot, name))
         try:
