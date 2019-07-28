@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from collections import OrderedDict
 from datetime import datetime
 import re
 from os.path import expanduser
@@ -33,13 +34,27 @@ from earwigbot import exceptions
 from earwigbot import wiki
 from earwigbot.tasks import Task
 
+_DEFAULT_PAGE_TEXT = """<noinclude><!-- You can edit anything on this page \
+except for content inside of <!-- stat begin/end -> and <!-- sig begin/end -> \
+without causing problems. Most of the chart can be modified by editing the \
+templates it uses, documented in [[Template:AFC statistics/doc]]. -->
+{{NOINDEX}}</noinclude>
+<!-- stat begin --><!-- stat end -->
+<span style="font-style: italic; font-weight: bold;">Last updated by \
+{{#ifeq:{{REVISIONUSER:Template:AFC statistics}}|EarwigBot|<!-- sig begin -->\
+<!-- sig end -->|{{User|{{REVISIONUSER:Template:AFC statistics}}}} at \
+{{#time:H:i, j F Y "(UTC)"|{{REVISIONTIMESTAMP:Template:AFC statistics}}}}}}\
+</span><noinclude>
+{{Documentation}}</noinclude>
+"""
+
 class AFCStatistics(Task):
     """A task to generate statistics for WikiProject Articles for Creation.
 
     Statistics are stored in a MySQL database ("u_earwig_afc_statistics")
     accessed with oursql. Statistics are synchronied with the live database
-    every four minutes and saved once an hour, on the hour, to self.pagename.
-    In the live bot, this is "Template:AFC statistics".
+    every four minutes and saved once an hour, on the hour, to subpages of
+    self.pageroot. In the live bot, this is "Template:AFC statistics".
     """
     name = "afc_statistics"
     number = 2
@@ -58,7 +73,7 @@ class AFCStatistics(Task):
         self.revision_cache = {}
 
         # Set some wiki-related attributes:
-        self.pagename = cfg.get("page", "Template:AFC statistics")
+        self.pageroot = cfg.get("page", "Template:AFC statistics")
         self.pending_cat = cfg.get("pending", "Pending AfC submissions")
         self.ignore_list = cfg.get("ignoreList", [])
         default_summary = "Updating statistics for [[WP:WPAFC|WikiProject Articles for creation]]."
@@ -112,8 +127,8 @@ class AFCStatistics(Task):
         """Save our local statistics to the wiki.
 
         After checking for emergency shutoff, the statistics chart is compiled,
-        and then saved to self.pagename using self.summary iff it has changed
-        since last save.
+        and then saved to subpages of self.pageroot using self.summary iff it
+        has changed since last save.
         """
         self.logger.info("Saving chart")
         if kwargs.get("fromIRC"):
@@ -124,43 +139,50 @@ class AFCStatistics(Task):
             summary = self.summary
 
         statistics = self._compile_charts()
+        for name, chart in statistics.iteritems():
+            self._save_page(name, chart)
 
-        page = self.site.get_page(self.pagename)
-        text = page.get()
+    def _save_page(self, name, chart):
+        """Save a statistics chart to a single page."""
+        page = self.site.get_page(u"{}/{}".format(self.pageroot, name))
+        try:
+            text = page.get()
+        except exceptions.PageNotFoundError:
+            text = _DEFAULT_PAGE_TEXT
+
         newtext = re.sub(u"<!-- stat begin -->(.*?)<!-- stat end -->",
-                         "<!-- stat begin -->\n" + statistics + "\n<!-- stat end -->",
+                         "<!-- stat begin -->\n" + chart + "\n<!-- stat end -->",
                          text, flags=re.DOTALL)
         if newtext == text:
-            self.logger.info("Chart unchanged; not saving")
-            return  # Don't edit the page if we're not adding anything
+            self.logger.info(u"Chart for {} unchanged; not saving".format(name))
+            return
 
         newtext = re.sub("<!-- sig begin -->(.*?)<!-- sig end -->",
                          "<!-- sig begin -->~~~ at ~~~~~<!-- sig end -->",
                          newtext)
         page.edit(newtext, summary, minor=True, bot=True)
-        self.logger.info(u"Chart saved to [[{0}]]".format(page.title))
+        self.logger.info(u"Chart for {} saved to [[{}]]".format(name, page.title))
 
     def _compile_charts(self):
         """Compile and return all statistics information from our local db."""
-        stats = ""
-        with self.conn.cursor() as cursor:
+        stats = OrderedDict()
+        with self.conn.cursor(oursql.DictCursor) as cursor:
             cursor.execute("SELECT * FROM chart")
             for chart in cursor:
-                stats += self._compile_chart(chart) + "\n"
-        return stats[:-1]  # Drop the last newline
+                name = chart['chart_name']
+                stats[name] = self._compile_chart(chart)
+        return stats
 
     def _compile_chart(self, chart_info):
         """Compile and return a single statistics chart."""
-        chart_id, chart_title, special_title = chart_info
-
-        chart = self.tl_header + "|" + chart_title
-        if special_title:
-            chart += "|" + special_title
+        chart = self.tl_header + "|" + chart_info['chart_title']
+        if chart_info['chart_special_title']:
+            chart += "|" + chart_info['chart_special_title']
         chart = "{{" + chart + "}}"
 
         query = "SELECT * FROM page JOIN row ON page_id = row_id WHERE row_chart = ?"
         with self.conn.cursor(oursql.DictCursor) as cursor:
-            cursor.execute(query, (chart_id,))
+            cursor.execute(query, (chart_info['chart_id'],))
             for page in cursor.fetchall():
                 chart += "\n" + self._compile_chart_row(page)
 

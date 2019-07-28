@@ -15,6 +15,7 @@ CREATE DATABASE `u_earwig_afc_statistics`
 DROP TABLE IF EXISTS `chart`;
 CREATE TABLE `chart` (
   `chart_id` tinyint(3) unsigned NOT NULL AUTO_INCREMENT,
+  `chart_name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `chart_title` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `chart_special_title` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`chart_id`)
@@ -26,11 +27,11 @@ CREATE TABLE `chart` (
 
 LOCK TABLES `chart` WRITE;
 INSERT INTO `chart` VALUES
-(1,'Pending submissions','Submitted'),
-(3,'Being reviewed','Reviewer'),
-(4,'Recently accepted','Accepted'),
-(5,'Recently declined','Declined'),
-(6,'Misplaced submissions','Created');
+(1,'pending','Pending submissions','Submitted'),
+(3,'reviewing','Being reviewed','Reviewer'),
+(4,'accepted','Recently accepted','Accepted'),
+(5,'declined','Recently declined','Declined'),
+(6,'created','Misplaced submissions','Created');
 UNLOCK TABLES;
 
 --
