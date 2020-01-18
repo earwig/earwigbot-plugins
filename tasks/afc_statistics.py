@@ -45,6 +45,8 @@ templates it uses, documented in [[Template:AFC statistics/doc]]. -->
 <noinclude>{{Documentation|Template:%(pageroot)s/doc}}</noinclude>
 """
 
+_PER_CHART_LIMIT = 2000
+
 class AFCStatistics(Task):
     """A task to generate statistics for WikiProject Articles for Creation.
 
@@ -180,10 +182,17 @@ class AFCStatistics(Task):
         query = "SELECT * FROM page JOIN row ON page_id = row_id WHERE row_chart = ?"
         with self.conn.cursor(oursql.DictCursor) as cursor:
             cursor.execute(query, (chart_info['chart_id'],))
-            for page in cursor.fetchall():
+            rows = cursor.fetchall()
+            skipped = max(0, len(rows) - _PER_CHART_LIMIT)
+            rows = rows[:_PER_CHART_LIMIT]
+            for page in rows:
                 chart += "\n" + self._compile_chart_row(page)
 
-        chart += "\n{{" + self.tl_footer + "}}"
+        footer = "{{" + self.tl_footer
+        if skipped:
+            footer += "|skip={}".format(skipped)
+        footer += "}}"
+        chart += "\n" + footer
         return chart
 
     def _compile_chart_row(self, page):
