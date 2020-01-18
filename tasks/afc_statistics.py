@@ -45,7 +45,7 @@ templates it uses, documented in [[Template:AFC statistics/doc]]. -->
 <noinclude>{{Documentation|Template:%(pageroot)s/doc}}</noinclude>
 """
 
-_PER_CHART_LIMIT = 1500
+_PER_CHART_LIMIT = 1000
 
 class AFCStatistics(Task):
     """A task to generate statistics for WikiProject Articles for Creation.
@@ -192,7 +192,7 @@ class AFCStatistics(Task):
         if skipped:
             footer += "|skip={}".format(skipped)
         footer += "}}"
-        chart += "\n" + footer
+        chart += "\n" + footer + "\n"
         return chart
 
     def _compile_chart_row(self, page):
