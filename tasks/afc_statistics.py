@@ -45,7 +45,7 @@ templates it uses, documented in [[Template:AFC statistics/doc]]. -->
 <noinclude>{{Documentation|Template:%(pageroot)s/doc}}</noinclude>
 """
 
-_PER_CHART_LIMIT = 2000
+_PER_CHART_LIMIT = 1500
 
 class AFCStatistics(Task):
     """A task to generate statistics for WikiProject Articles for Creation.
