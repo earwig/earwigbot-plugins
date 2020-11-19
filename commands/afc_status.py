@@ -24,7 +24,7 @@ import re
 
 from earwigbot.commands import Command
 
-class AFCStatus(Command):
+class AfCStatus(Command):
     """Get the number of pending AfC submissions, open redirect requests, and
     open file upload requests."""
     name = "status"
@@ -143,7 +143,7 @@ class AFCStatus(Command):
         return self.site.get_category(catname).pages
 
     def count_submissions(self):
-        """Returns the number of open AFC submissions (count of CAT:PEND)."""
+        """Returns the number of open AfC submissions (count of CAT:PEND)."""
         minus = len(self.ignore_list)
         return self.site.get_category("Pending AfC submissions").pages - minus
 
@@ -167,9 +167,9 @@ class AFCStatus(Command):
         return files
 
     def get_aggregate(self, num):
-        """Returns a human-readable AFC status based on the number of pending
-        AFC submissions, open redirect requests, and open FFU requests. This
-        does not match {{AFC status}} directly because the algorithm factors in
+        """Returns a human-readable AfC status based on the number of pending
+        AfC submissions, open redirect requests, and open FFU requests. This
+        does not match {{AfC status}} directly because the algorithm factors in
         WP:AFC/R and WP:FFU while the template only looks at the main
         submissions. The reasoning is that AFC/R and FFU are still part of
         the project, so even if there are no pending submissions, a backlog at

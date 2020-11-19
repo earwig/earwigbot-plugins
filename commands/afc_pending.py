@@ -22,8 +22,8 @@
 
 from earwigbot.commands import Command
 
-class AFCPending(Command):
-    """Link the user to the pending AFC submissions page and category."""
+class AfCPending(Command):
+    """Link the user to the pending AfC submissions page and category."""
     name = "pending"
     commands = ["pending", "pend"]
 

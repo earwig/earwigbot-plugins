@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 
 from earwigbot.tasks import Task
 
-class AFCDailyCats(Task):
+class AfCDailyCats(Task):
     """A task to create daily categories for [[WP:AFC]]."""
     name = "afc_dailycats"
     number = 3
@@ -32,7 +32,7 @@ class AFCDailyCats(Task):
     def setup(self):
         cfg = self.config.tasks.get(self.name, {})
         self.prefix = cfg.get("prefix", "Category:AfC submissions by date/")
-        self.content = cfg.get("content", "{{AFC submission category header}}")
+        self.content = cfg.get("content", "{{AfC submission category header}}")
         default_summary = "Creating {0} category page for [[WP:AFC|Articles for creation]]."
         self.summary = self.make_summary(cfg.get("summary", default_summary))
 

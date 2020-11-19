@@ -23,8 +23,8 @@
 from earwigbot import wiki
 from earwigbot.commands import Command
 
-class AFCReport(Command):
-    """Get information about an AFC submission by name."""
+class AfCReport(Command):
+    """Get information about an AfC submission by name."""
     name = "report"
 
     def process(self, data):

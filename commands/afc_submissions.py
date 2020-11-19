@@ -23,8 +23,8 @@
 from earwigbot import wiki
 from earwigbot.commands import Command
 
-class AFCSubmissions(Command):
-    """Link the user directly to some pending AFC submissions."""
+class AfCSubmissions(Command):
+    """Link the user directly to some pending AfC submissions."""
     name = "submissions"
     commands = ["submissions", "subs"]
 

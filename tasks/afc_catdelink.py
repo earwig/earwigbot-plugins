@@ -22,7 +22,7 @@
 
 from earwigbot.tasks import Task
 
-class AFCCatDelink(Task):
+class AfCCatDelink(Task):
     """A task to delink mainspace categories in declined [[WP:AFC]]
     submissions."""
     name = "afc_catdelink"

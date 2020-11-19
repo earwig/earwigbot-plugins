@@ -22,7 +22,7 @@
 
 from earwigbot.tasks import Task
 
-class AFCHistory(Task):
+class AfCHistory(Task):
     """A task to generate information about AfC submissions over time."""
     name = "afc_history"
 

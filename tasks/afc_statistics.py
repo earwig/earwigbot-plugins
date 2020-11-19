@@ -37,7 +37,7 @@ from earwigbot.tasks import Task
 _DEFAULT_PAGE_TEXT = """<noinclude><!-- You can edit anything on this page \
 except for content inside of <!-- stat begin/end -> and <!-- sig begin/end -> \
 without causing problems. Most of the chart can be modified by editing the \
-templates it uses, documented in [[Template:AFC statistics/doc]]. -->
+templates it uses, documented in [[Template:AfC statistics/doc]]. -->
 {{NOINDEX}}</noinclude>\
 <!-- stat begin --><!-- stat end -->
 <span style="font-style: italic; font-size: 85%%;">Last updated by \
@@ -47,13 +47,13 @@ templates it uses, documented in [[Template:AFC statistics/doc]]. -->
 
 _PER_CHART_LIMIT = 1000
 
-class AFCStatistics(Task):
+class AfCStatistics(Task):
     """A task to generate statistics for WikiProject Articles for Creation.
 
     Statistics are stored in a MySQL database ("u_earwig_afc_statistics")
     accessed with oursql. Statistics are synchronied with the live database
     every four minutes and saved once an hour, on the hour, to subpages of
-    self.pageroot. In the live bot, this is "Template:AFC statistics".
+    self.pageroot. In the live bot, this is "Template:AfC statistics".
     """
     name = "afc_statistics"
     number = 2
@@ -72,7 +72,7 @@ class AFCStatistics(Task):
         self.revision_cache = {}
 
         # Set some wiki-related attributes:
-        self.pageroot = cfg.get("page", "Template:AFC statistics")
+        self.pageroot = cfg.get("page", "Template:AfC statistics")
         self.pending_cat = cfg.get("pending", "Pending AfC submissions")
         self.ignore_list = cfg.get("ignoreList", [])
         default_summary = "Updating statistics for [[WP:WPAFC|WikiProject Articles for creation]]."
@@ -80,9 +80,9 @@ class AFCStatistics(Task):
 
         # Templates used in chart generation:
         templates = cfg.get("templates", {})
-        self.tl_header = templates.get("header", "AFC statistics/header")
+        self.tl_header = templates.get("header", "AfC statistics/header")
         self.tl_row = templates.get("row", "#invoke:AfC|row")
-        self.tl_footer = templates.get("footer", "AFC statistics/footer")
+        self.tl_footer = templates.get("footer", "AfC statistics/footer")
 
         # Connection data for our SQL database:
         kwargs = cfg.get("sql", {})
@@ -544,12 +544,12 @@ class AFCStatistics(Task):
         return content
 
     def _get_status_and_chart(self, content, namespace):
-        """Determine the status and chart number of an AFC submission.
+        """Determine the status and chart number of an AfC submission.
 
         The methodology used here is the same one I've been using for years
         (see also commands.afc_report), but with the new draft system taken
         into account. The order here is important: if there is more than one
-        {{AFC submission}} template on a page, we need to know which one to
+        {{AfC submission}} template on a page, we need to know which one to
         use (revision history search to find the most recent isn't a viable
         idea :P).
         """
@@ -569,7 +569,7 @@ class AFCStatistics(Task):
         return None, self.CHART_NONE
 
     def get_statuses(self, content):
-        """Return a list of all AFC submission statuses in a page's text."""
+        """Return a list of all AfC submission statuses in a page's text."""
         valid = ["P", "R", "T", "D"]
         aliases = {
             "submit": "P",

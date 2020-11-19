@@ -29,7 +29,7 @@ from earwigbot.wiki.constants import *
 
 NS_DRAFT = 118
 
-class AFCUndated(Task):
+class AfCUndated(Task):
     """A task to clear [[Category:Undated AfC submissions]]."""
     name = "afc_undated"
     number = 5
@@ -45,7 +45,7 @@ class AFCUndated(Task):
                      NS_CATEGORY_TALK]
         }
         self.aliases = {
-            "submission": ["AFC submission"],
+            "submission": ["AfC submission"],
             "talk": ["WikiProject Articles for creation"]
         }
 
@@ -72,7 +72,7 @@ class AFCUndated(Task):
                 counter += 1
 
     def _build_aliases(self):
-        """Build template name aliases for the AFC templates."""
+        """Build template name aliases for the AfC templates."""
         for key in self.aliases:
             base = self.aliases[key][0]
             aliases = [base, "Template:" + base]

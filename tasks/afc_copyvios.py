@@ -30,7 +30,7 @@ import oursql
 
 from earwigbot.tasks import Task
 
-class AFCCopyvios(Task):
+class AfCCopyvios(Task):
     """A task to check newly-edited [[WP:AFC]] submissions for copyright
     violations."""
     name = "afc_copyvios"
@@ -153,7 +153,7 @@ class AFCCopyvios(Task):
                     return tag
 
     def is_pending(self, code):
-        """Return whether a page is a pending AFC submission."""
+        """Return whether a page is a pending AfC submission."""
         other_statuses = ["r", "t", "d"]
         tmpls = ["submit", "afc submission/submit", "afc submission/pending"]
         for template in code.ifilter_templates():

@@ -11,7 +11,7 @@ one that contains its config file).
 IRC Commands
 ------------
 
-- **AFC-related commands** (*afc_pending*, *afc_report*, *afc_status*,
+- **AfC-related commands** (*afc_pending*, *afc_report*, *afc_status*,
   *afc_submissions*): implements various services for
   [Articles for creation](http://en.wikipedia.org/wiki/WP:AFC). It has no
   dependencies, but `afc_report` requires the `afc_statistics` task plugin for
@@ -67,24 +67,24 @@ Bot Tasks
 ---------
 
 - **afc_catdelink**: delinks mainspace categories (or templates, if necessary)
-  in declined [AFC](http://en.wikipedia.org/wiki/WP:AFC) submissions.
+  in declined [AfC](http://en.wikipedia.org/wiki/WP:AFC) submissions.
 
-- **afc_copyvios**: checks newly-edited AFC submissions for copyright
+- **afc_copyvios**: checks newly-edited AfC submissions for copyright
   violations using the bot's built-in copyvio checking support. Takes multiple
   config values, including connection info for a MySQL database to store
   processed pages and a cache (disabled by default; usable by the
   [web interface](https://tools.wmflabs.org/copyvios)). A script to create the
   database is in `tasks/schema/afc_copyvios.sql`.
 
-- **afc_dailycats**: creates daily, monthly, and yearly categories for AFC.
+- **afc_dailycats**: creates daily, monthly, and yearly categories for AfC.
 
-- **afc_history**: generates charts about AFC submissions over time, including
+- **afc_history**: generates charts about AfC submissions over time, including
   number of pending submissions throughout the project's history as well as
   counts for individual reviewers. Takes multiple config values, including
   MySQL database info. A script to create the database is in
   `tasks/schema/afc_history.sql`.
 
-- **afc_statistics**: generates statistics for AFC on the current number of
+- **afc_statistics**: generates statistics for AfC on the current number of
   pending submissions and recently declined or accepted ones. Takes multiple
   config values, including MySQL database info. A script to create the database
   is in `tasks/schema/afc_statistics.sql`.
