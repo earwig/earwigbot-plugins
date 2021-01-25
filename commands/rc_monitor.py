@@ -49,6 +49,7 @@ class RCMonitor(Command):
             log = ('Cannot use without a report channel set as '
                    'config.commands["{0}"]["channel"]')
             self.logger.warn(log.format(self.name))
+            return
 
         self._stats = {
             "start": datetime.utcnow(),
