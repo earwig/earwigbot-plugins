@@ -150,7 +150,7 @@ class AfCStatus(Command):
     def count_redirects(self):
         """Returns the number of open redirect submissions. Calculated as the
         total number of submissions minus the closed ones."""
-        title = "Wikipedia:Articles for creation/Redirects"
+        title = "Wikipedia:Articles for creation/Redirects and categories"
         content = self.site.get_page(title).get()
         total = len(re.findall("^\s*==(.*?)==\s*$", content, re.MULTILINE))
         closed = content.lower().count("{{afc-c|b}}")
