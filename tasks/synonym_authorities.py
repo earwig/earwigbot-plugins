@@ -35,11 +35,11 @@ from earwigbot.tasks import Task
 
 class SynonymAuthorities(Task):
     """
-    Correct synonym authorities in taxon articles created by Qbugbot.
+    Correct mismatched synonym authorities in taxon articles created by Qbugbot.
     """
     name = 'synonym_authorities'
     summary = (
-        'Fix {changes} misordered synonym authorities '
+        'Fix {changes} mismatched synonym authorities per ITIS '
         '([[Wikipedia:Bots/Requests for approval/EarwigBot 21|more info]])'
     )
 
@@ -338,7 +338,7 @@ class SynonymAuthorities(Task):
                 raise RuntimeError('Shutoff enabled')
             if not page.check_exclusion():
                 self.logger.warning(f'[[{page.title}]]: Bot excluded from editing')
-                return
+                continue
 
             page.edit(
                 edit['content'],
