@@ -38,7 +38,8 @@ class SynonymAuthorities(Task):
     Correct mismatched synonym authorities in taxon articles created by Qbugbot.
     """
     name = 'synonym_authorities'
-    summary = (
+    number = 21
+    base_summary = (
         'Fix {changes} mismatched synonym authorities per ITIS '
         '([[Wikipedia:Bots/Requests for approval/EarwigBot 21|more info]])'
     )
@@ -50,6 +51,7 @@ class SynonymAuthorities(Task):
         self.synonyms_path = 'qbugbot_synonyms.json'
         self.edits_path = 'qbugbot_edits.json'
         self.itis_path = 'itis.db'
+        self.summary = self.make_summary(self.base_summary)
 
     def run(self, action=None):
         if action == 'fetch_pages':
@@ -80,6 +82,7 @@ class SynonymAuthorities(Task):
             json.dump(pages, fp)
 
     def _iter_creations(self):
+        # TODO: include converted redirects ([[Category:Articles created by Qbugbot]])
         params = {
             'action': 'query',
             'list': 'usercontribs',
@@ -332,9 +335,9 @@ class SynonymAuthorities(Task):
         self.logger.info(f'{len(edits)} pages to edit')
         for pageid, edit in edits.items():
             page = self.site.get_page(edit['title'])
-            self.logger.info(f'\n{pageid}: [[{page.title}]]')
+            self.logger.info(f'{pageid}: [[{page.title}]]')
 
-            if self.shutoff_enabled(page):
+            if self.shutoff_enabled():
                 raise RuntimeError('Shutoff enabled')
             if not page.check_exclusion():
                 self.logger.warning(f'[[{page.title}]]: Bot excluded from editing')
@@ -344,5 +347,7 @@ class SynonymAuthorities(Task):
                 edit['content'],
                 summary=self.summary.format(changes=len(edit['changes'])),
                 baserevid=edit['revid'],
+                basetimestamp=None,
+                starttimestamp=None,
             )
             time.sleep(10)
