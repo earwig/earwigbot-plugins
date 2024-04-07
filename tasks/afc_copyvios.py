@@ -21,10 +21,10 @@
 from hashlib import sha256
 from os.path import expanduser
 from threading import Lock
-from urllib import quote
+from urllib.parse import quote
 
 import mwparserfromhell
-import oursql
+import pymysql
 
 from earwigbot.tasks import Task
 
@@ -70,7 +70,7 @@ class AfCCopyvios(Task):
         title = kwargs["page"]
         page = self.bot.wiki.get_site().get_page(title)
         with self.db_access_lock:
-            self.conn = oursql.connect(**self.conn_data)
+            self.conn = pymysql.connect(**self.conn_data)
             self.process(page)
 
     def process(self, page):
@@ -139,7 +139,7 @@ class AfCCopyvios(Task):
         msg = "Found violation: [[{0}]] -> {1} ({2} confidence)"
         self.logger.info(msg.format(title, url, new_conf))
         safeurl = quote(url.encode("utf8"), safe="/:").decode("utf8")
-        template = "\{\{{0}|url={1}|confidence={2}\}\}\n"
+        template = r"\{\{{0}|url={1}|confidence={2}\}\}\n"
         template = template.format(self.template, safeurl, new_conf)
         newtext = template + content
         if "{url}" in self.summary:

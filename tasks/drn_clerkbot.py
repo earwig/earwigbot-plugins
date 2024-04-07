@@ -24,7 +24,8 @@ from os.path import expanduser
 from threading import RLock
 from time import mktime, sleep, time
 
-import oursql
+import pymysql
+import pymysql.cursors
 from mwparserfromhell import parse as mw_parse
 
 from earwigbot import exceptions
@@ -112,7 +113,7 @@ class DRNClerkBot(Task):
         action = kwargs.get("action", "all")
         try:
             start = time()
-            conn = oursql.connect(**self.conn_data)
+            conn = pymysql.connect(**self.conn_data)
             site = self.bot.wiki.get_site()
             if action in ["all", "update_volunteers"]:
                 self.update_volunteers(conn, site)
@@ -155,7 +156,7 @@ class DRNClerkBot(Task):
         text = text.split(marker)[1]
         additions = set()
         for line in text.splitlines():
-            user = re.search("\# \{\{User\|(.+?)\}\}", line)
+            user = re.search(r"\# \{\{User\|(.+?)\}\}", line)
             if user:
                 uname = user.group(1).replace("_", " ").strip()
                 additions.add((uname[0].upper() + uname[1:],))
@@ -193,7 +194,7 @@ class DRNClerkBot(Task):
         """Read the noticeboard content and update the list of _Cases."""
         nextid = self.select_next_id(conn)
         tl_status_esc = re.escape(self.tl_status)
-        split = re.split("(^==\s*[^=]+?\s*==$)", text, flags=re.M | re.U)
+        split = re.split(r"(^==\s*[^=]+?\s*==$)", text, flags=re.M | re.U)
         for i in range(len(split)):
             if i + 1 == len(split):
                 break
@@ -201,17 +202,17 @@ class DRNClerkBot(Task):
                 continue
             title = split[i][2:-2].strip()
             body = old = split[i + 1]
-            if not re.search("\s*\{\{" + tl_status_esc, body, re.U):
+            if not re.search(r"\s*\{\{" + tl_status_esc, body, re.U):
                 continue
             status = self.read_status(body)
-            re_id = "<!-- Bot Case ID \(please don't modify\): (.*?) -->"
+            re_id = r"<!-- Bot Case ID \(please don't modify\): (.*?) -->"
             try:
                 id_ = int(re.search(re_id, body).group(1))
                 case = [case for case in cases if case.id == id_][0]
             except (AttributeError, IndexError, ValueError):
                 id_ = nextid
                 nextid += 1
-                re_id2 = "(\{\{" + tl_status_esc
+                re_id2 = r"(\{\{" + tl_status_esc
                 re_id2 += (
                     r"(.*?)\}\})(<!-- Bot Case ID \(please don't modify\): .*? -->)?"
                 )
@@ -281,7 +282,7 @@ class DRNClerkBot(Task):
     def read_status(self, body):
         """Parse the current status from a case body."""
         templ = re.escape(self.tl_status)
-        status = re.search("\{\{" + templ + "\|?(.*?)\}\}", body, re.S | re.U)
+        status = re.search(r"\{\{" + templ + r"\|?(.*?)\}\}", body, re.S | re.U)
         if not status:
             return self.STATUS_NEW
         for option, names in self.ALIASES.iteritems():
@@ -518,7 +519,7 @@ class DRNClerkBot(Task):
         re_parties = "<span.*?>'''Users involved'''</span>(.*?)<span.*?>"
         text = re.search(re_parties, case.body, re.S | re.U)
         for line in text.group(1).splitlines():
-            user = re.search("[:*#]{,5} \{\{User\|(.*?)\}\}", line)
+            user = re.search(r"[:*#]{,5} \{\{User\|(.*?)\}\}", line)
             if user:
                 party = user.group(1).replace("_", " ").strip()
                 if party.startswith("User:"):
@@ -550,7 +551,7 @@ class DRNClerkBot(Task):
             case.last_action = case.status
             new = self.ALIASES[case.status][0]
             tl_status_esc = re.escape(self.tl_status)
-            search = "\{\{" + tl_status_esc + "(\|?.*?)\}\}"
+            search = r"\{\{" + tl_status_esc + r"(\|?.*?)\}\}"
             repl = "{{" + self.tl_status + "|" + new + "}}"
             case.body = re.sub(search, repl, case.body)
 
@@ -617,7 +618,7 @@ class DRNClerkBot(Task):
 
     def save_existing_case(self, conn, case):
         """Save an existing case to the database, updating as necessary."""
-        with conn.cursor(oursql.DictCursor) as cursor:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             query = "SELECT * FROM cases WHERE case_id = ?"
             cursor.execute(query, (case.id,))
             stored = cursor.fetchone()
@@ -754,7 +755,7 @@ class DRNClerkBot(Task):
             + "|small={{{small|}}}|collapsed={{{collapsed|}}}}}\n"
         )
         query = "SELECT * FROM cases WHERE case_status != ?"
-        with conn.cursor(oursql.DictCursor) as cursor:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute(query, (self.STATUS_UNKNOWN,))
             for case in cursor:
                 chart += self.compile_row(case)

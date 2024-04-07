@@ -26,7 +26,8 @@ from threading import Lock
 from time import sleep
 
 import mwparserfromhell
-import oursql
+import pymysql
+import pymysql.cursors
 
 from earwigbot import exceptions, wiki
 from earwigbot.tasks import Task
@@ -49,7 +50,7 @@ class AfCStatistics(Task):
     """A task to generate statistics for WikiProject Articles for Creation.
 
     Statistics are stored in a MySQL database ("u_earwig_afc_statistics")
-    accessed with oursql. Statistics are synchronied with the live database
+    accessed with pymysql. Statistics are synchronied with the live database
     every four minutes and saved once an hour, on the hour, to subpages of
     self.pageroot. In the live bot, this is "Template:AfC statistics".
     """
@@ -109,7 +110,7 @@ class AfCStatistics(Task):
 
         try:
             self.site = self.bot.wiki.get_site()
-            self.conn = oursql.connect(**self.conn_data)
+            self.conn = pymysql.connect(**self.conn_data)
             self.revision_cache = {}
             try:
                 if action == "save":
@@ -139,7 +140,7 @@ class AfCStatistics(Task):
             summary = self.summary
 
         statistics = self._compile_charts()
-        for name, chart in statistics.iteritems():
+        for name, chart in statistics.items():
             self._save_page(name, chart, summary)
 
     def _save_page(self, name, chart, summary):
@@ -171,7 +172,7 @@ class AfCStatistics(Task):
     def _compile_charts(self):
         """Compile and return all statistics information from our local db."""
         stats = OrderedDict()
-        with self.conn.cursor(oursql.DictCursor) as cursor:
+        with self.conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute("SELECT * FROM chart")
             for chart in cursor:
                 name = chart["chart_name"]
@@ -186,7 +187,7 @@ class AfCStatistics(Task):
         chart = "{{" + chart + "}}"
 
         query = "SELECT * FROM page JOIN row ON page_id = row_id WHERE row_chart = ?"
-        with self.conn.cursor(oursql.DictCursor) as cursor:
+        with self.conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute(query, (chart_info["chart_id"],))
             rows = cursor.fetchall()
             skipped = max(0, len(rows) - _PER_CHART_LIMIT)
@@ -449,7 +450,7 @@ class AfCStatistics(Task):
             return
 
         query = "SELECT * FROM page JOIN row ON page_id = row_id WHERE page_id = ?"
-        with self.conn.cursor(oursql.DictCursor) as dict_cursor:
+        with self.conn.cursor(pymysql.cursors.DictCursor) as dict_cursor:
             dict_cursor.execute(query, (pageid,))
             result = dict_cursor.fetchall()[0]
 
