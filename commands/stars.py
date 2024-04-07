@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2015 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,12 +19,15 @@
 # SOFTWARE.
 
 from json import loads
-from urllib2 import urlopen, HTTPError
+from urllib.error import HTTPError
+from urllib.request import urlopen
 
 from earwigbot.commands import Command
 
+
 class Stars(Command):
     """Get the number of stargazers for a given GitHub repository."""
+
     name = "stars"
     commands = ["stars", "stargazers"]
     API_REPOS = "https://api.github.com/repos/{repo}"
@@ -35,7 +36,7 @@ class Stars(Command):
 
     def process(self, data):
         if not data.args:
-            msg = "Which GitHub repository or user should I look up? Example: \x0306{0}\x0F."
+            msg = "Which GitHub repository or user should I look up? Example: \x0306{0}\x0f."
             self.reply(data, msg.format(self.EXAMPLE))
             return
 
@@ -55,9 +56,8 @@ class Stars(Command):
         count = int(repo["stargazers_count"])
         plural = "" if count == 1 else "s"
 
-        msg = "\x0303{0}\x0F has \x02{1}\x0F stargazer{2}: {3}"
-        self.reply(data, msg.format(
-            repo["full_name"], count, plural, repo["html_url"]))
+        msg = "\x0303{0}\x0f has \x02{1}\x0f stargazer{2}: {3}"
+        self.reply(data, msg.format(repo["full_name"], count, plural, repo["html_url"]))
 
     def handle_user(self, data, arg):
         """Handle !stars <user>."""
@@ -71,18 +71,22 @@ class Stars(Command):
         star_plural = "" if star_count == 1 else "s"
         repo_plural = "" if len(repos) == 1 else "s"
         if len(repos) == 100:
-            star_count = "{0}+".format(star_count)
-            repo_count = "{0}+".format(repo_count)
+            star_count = f"{star_count}+"
+            repo_count = f"{repo_count}+"
         if len(repos) > 0:
             name = repos[0]["owner"]["login"]
             url = repos[0]["owner"]["html_url"]
         else:
             name = arg
-            url = "https://github.com/{0}".format(name)
+            url = f"https://github.com/{name}"
 
-        msg = "\x0303{0}\x0F has \x02{1}\x0F stargazer{2} across \x02{3}\x0F repo{4}: {5}"
-        self.reply(data, msg.format(
-            name, star_count, star_plural, repo_count, repo_plural, url))
+        msg = (
+            "\x0303{0}\x0f has \x02{1}\x0f stargazer{2} across \x02{3}\x0f repo{4}: {5}"
+        )
+        self.reply(
+            data,
+            msg.format(name, star_count, star_plural, repo_count, repo_plural, url),
+        )
 
     def get_repo(self, repo):
         """Return the API JSON dump for a given repository.

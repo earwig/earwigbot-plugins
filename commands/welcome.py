@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2015 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,8 +23,10 @@ from time import sleep, time
 
 from earwigbot.commands import Command
 
+
 class Welcome(Command):
     """Welcome people who enter certain channels."""
+
     name = "welcome"
     commands = ["welcome", "greet"]
     hooks = ["join", "part", "msg"]
@@ -76,7 +76,7 @@ class Welcome(Command):
         if not data.host.startswith("gateway/web/"):
             return
 
-        t_id = "welcome-{0}-{1}".format(data.chan.replace("#", ""), data.nick)
+        t_id = "welcome-{}-{}".format(data.chan.replace("#", ""), data.nick)
         thread = Thread(target=self._callback, name=t_id, args=(data,))
         thread.daemon = True
         thread.start()
@@ -107,32 +107,40 @@ class Welcome(Command):
                 if len(data.args) < 2:
                     self.reply(data, "Which channel should I disable?")
                 elif data.args[1] in self.disabled:
-                    msg = "Welcoming in \x02{0}\x0F is already disabled."
+                    msg = "Welcoming in \x02{0}\x0f is already disabled."
                     self.reply(data, msg.format(data.args[1]))
                 elif data.args[1] not in self.channels:
-                    msg = ("I'm not welcoming people in \x02{0}\x0F. "
-                           "Only the bot owner can add new channels.")
+                    msg = (
+                        "I'm not welcoming people in \x02{0}\x0f. "
+                        "Only the bot owner can add new channels."
+                    )
                     self.reply(data, msg.format(data.args[1]))
                 else:
                     self.disabled.append(data.args[1])
-                    msg = ("Disabled welcoming in \x02{0}\x0F. Re-enable with "
-                           "\x0306!welcome enable {0}\x0F.")
+                    msg = (
+                        "Disabled welcoming in \x02{0}\x0f. Re-enable with "
+                        "\x0306!welcome enable {0}\x0f."
+                    )
                     self.reply(data, msg.format(data.args[1]))
             elif data.args[0] == "enable":
                 if len(data.args) < 2:
                     self.reply(data, "Which channel should I enable?")
                 elif data.args[1] not in self.disabled:
-                    msg = ("I don't have welcoming disabled in \x02{0}\x0F. "
-                           "Only the bot owner can add new channels.")
+                    msg = (
+                        "I don't have welcoming disabled in \x02{0}\x0f. "
+                        "Only the bot owner can add new channels."
+                    )
                     self.reply(data, msg.format(data.args[1]))
                 else:
                     self.disabled.remove(data.args[1])
-                    msg = "Enabled welcoming in \x02{0}\x0F."
+                    msg = "Enabled welcoming in \x02{0}\x0f."
                     self.reply(data, msg.format(data.args[1]))
             else:
                 self.reply(data, "I don't understand that command.")
         else:
-            msg = ("This command welcomes people who enter certain channels. "
-                   "I am welcoming people in: {0}. A bot admin can disable me "
-                   "with \x0306!welcome disable [channel]\x0F.")
+            msg = (
+                "This command welcomes people who enter certain channels. "
+                "I am welcoming people in: {0}. A bot admin can disable me "
+                "with \x0306!welcome disable [channel]\x0f."
+            )
             self.reply(data, msg.format(", ".join(self.channels.keys())))

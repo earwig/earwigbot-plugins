@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2016 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,11 +18,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import re
 from collections import namedtuple
 from datetime import datetime
 from difflib import ndiff
-from Queue import Queue
-import re
+from queue import Queue
 from threading import Thread
 
 from earwigbot.commands import Command
@@ -34,9 +32,11 @@ from earwigbot.wiki import constants
 
 _Diff = namedtuple("_Diff", ["added", "removed"])
 
+
 class RCMonitor(Command):
     """Monitors the recent changes feed for certain edits and reports them to a
     dedicated channel."""
+
     name = "rc_monitor"
     commands = ["rc_monitor", "rcm"]
     hooks = ["msg", "rc"]
@@ -46,8 +46,10 @@ class RCMonitor(Command):
             self._channel = self.config.commands[self.name]["channel"]
         except KeyError:
             self._channel = None
-            log = ('Cannot use without a report channel set as '
-                   'config.commands["{0}"]["channel"]')
+            log = (
+                "Cannot use without a report channel set as "
+                'config.commands["{0}"]["channel"]'
+            )
             self.logger.warn(log.format(self.name))
             return
 
@@ -55,7 +57,7 @@ class RCMonitor(Command):
             "start": datetime.utcnow(),
             "edits": 0,
             "hits": 0,
-            "max_backlog": 0
+            "max_backlog": 0,
         }
         self._levels = {}
         self._issues = {}
@@ -73,7 +75,8 @@ class RCMonitor(Command):
         if not self._channel:
             return
         return isinstance(data, RC) or (
-            data.is_command and data.command in self.commands)
+            data.is_command and data.command in self.commands
+        )
 
     def process(self, data):
         if isinstance(data, RC):
@@ -90,11 +93,17 @@ class RCMonitor(Command):
         since = self._stats["start"].strftime("%H:%M:%S, %d %B %Y")
         seconds = (datetime.utcnow() - self._stats["start"]).total_seconds()
         rate = self._stats["edits"] / seconds
-        msg = ("\x02{edits:,}\x0F edits checked since {since} "
-               "(\x02{rate:.2f}\x0F edits/sec); \x02{hits:,}\x0F hits; "
-               "\x02{qsize:,}\x0F-edit backlog (\x02{max_backlog:,}\x0F max).")
-        self.reply(data, msg.format(
-            since=since, rate=rate, qsize=self._queue.qsize(), **self._stats))
+        msg = (
+            "\x02{edits:,}\x0f edits checked since {since} "
+            "(\x02{rate:.2f}\x0f edits/sec); \x02{hits:,}\x0f hits; "
+            "\x02{qsize:,}\x0f-edit backlog (\x02{max_backlog:,}\x0f max)."
+        )
+        self.reply(
+            data,
+            msg.format(
+                since=since, rate=rate, qsize=self._queue.qsize(), **self._stats
+            ),
+        )
 
     def unload(self):
         self._thread.running = False
@@ -106,17 +115,9 @@ class RCMonitor(Command):
         alert = 2
         urgent = 3
 
-        self._levels = {
-            routine: "routine",
-            alert: "alert",
-            urgent: "URGENT"
-        }
-        self._issues = {
-            "g10": alert
-        }
-        self._descriptions = {
-            "g10": "CSD G10 nomination"
-        }
+        self._levels = {routine: "routine", alert: "alert", urgent: "URGENT"}
+        self._issues = {"g10": alert}
+        self._descriptions = {"g10": "CSD G10 nomination"}
 
     def _get_diff(self, oldrev, newrev):
         """Return the difference between two revisions.
@@ -126,9 +127,12 @@ class RCMonitor(Command):
         site = self.bot.wiki.get_site()
         try:
             result = site.api_query(
-                action="query", prop="revisions", rvprop="ids|content",
+                action="query",
+                prop="revisions",
+                rvprop="ids|content",
                 rvslots="main",
-                revids=(oldrev + "|" + newrev) if oldrev else newrev)
+                revids=(oldrev + "|" + newrev) if oldrev else newrev,
+            )
         except APIError:
             return None
 
@@ -148,10 +152,12 @@ class RCMonitor(Command):
             return _Diff(text.splitlines(), [])
 
         try:
-            oldtext = [rv["slots"]["main"]["*"] for rv in revs
-                       if rv["revid"] == int(oldrev)][0]
-            newtext = [rv["slots"]["main"]["*"] for rv in revs
-                       if rv["revid"] == int(newrev)][0]
+            oldtext = [
+                rv["slots"]["main"]["*"] for rv in revs if rv["revid"] == int(oldrev)
+            ][0]
+            newtext = [
+                rv["slots"]["main"]["*"] for rv in revs if rv["revid"] == int(newrev)
+            ][0]
         except (IndexError, KeyError):
             return None
 
@@ -165,14 +171,20 @@ class RCMonitor(Command):
         site = self.bot.wiki.get_site()
         try:
             result = site.api_query(
-                action="query", list="backlinks", blfilterredir="redirects",
-                blnamespace=constants.NS_TEMPLATE, bllimit=50,
-                bltitle="Template:" + template)
+                action="query",
+                list="backlinks",
+                blfilterredir="redirects",
+                blnamespace=constants.NS_TEMPLATE,
+                bllimit=50,
+                bltitle="Template:" + template,
+            )
         except APIError:
             return []
 
-        redirs = {link["title"].split(":", 1)[1].lower()
-                  for link in result["query"]["backlinks"]}
+        redirs = {
+            link["title"].split(":", 1)[1].lower()
+            for link in result["query"]["backlinks"]
+        }
         redirs.add(template)
         return redirs
 
@@ -184,9 +196,11 @@ class RCMonitor(Command):
                 return None
             self._redirects[template] = redirects
 
-        search = "|".join(r"(template:)?" + re.escape(tmpl).replace(r"\ ", r"[ _]")
-                          for tmpl in self._redirects[template])
-        return re.compile(r"\{\{\s*(" + search + r")\s*(\||\}\})", re.U|re.I)
+        search = "|".join(
+            r"(template:)?" + re.escape(tmpl).replace(r"\ ", r"[ _]")
+            for tmpl in self._redirects[template]
+        )
+        return re.compile(r"\{\{\s*(" + search + r")\s*(\||\}\})", re.U | re.I)
 
     def _evaluate_csd(self, diff):
         """Evaluate a diff for CSD tagging."""
@@ -223,12 +237,20 @@ class RCMonitor(Command):
         notify = " ".join("!rcm-" + issue for issue in report)
         cmnt = rc.comment if len(rc.comment) <= 50 else rc.comment[:47] + "..."
 
-        msg = ("[\x02{level}\x0F] ({descr}) [\x02{notify}\x0F]\x0306 * "
-               "\x0314[[\x0307{title}\x0314]]\x0306 * \x0303{user}\x0306 * "
-               "\x0302{url}\x0306 * \x0310{comment}")
+        msg = (
+            "[\x02{level}\x0f] ({descr}) [\x02{notify}\x0f]\x0306 * "
+            "\x0314[[\x0307{title}\x0314]]\x0306 * \x0303{user}\x0306 * "
+            "\x0302{url}\x0306 * \x0310{comment}"
+        )
         return msg.format(
-            level=level, descr=descr, notify=notify, title=rc.page,
-            user=rc.user, url=rc.url, comment=cmnt)
+            level=level,
+            descr=descr,
+            notify=notify,
+            title=rc.page,
+            user=rc.user,
+            url=rc.url,
+            comment=cmnt,
+        )
 
     def _handle_event(self, event):
         """Process a recent change event."""

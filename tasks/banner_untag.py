@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2017 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,8 +22,10 @@ import time
 
 from earwigbot.tasks import Task
 
+
 class BannerUntag(Task):
     """A task to undo mistaken tagging edits made by wikiproject_tagger."""
+
     name = "banner_untag"
     number = 14
 
@@ -42,8 +42,9 @@ class BannerUntag(Task):
             done = [int(line) for line in donefp.read().splitlines()]
 
         with open(rev_file) as fp:
-            data = [[int(x) for x in line.split("\t")]
-                    for line in fp.read().splitlines()]
+            data = [
+                [int(x) for x in line.split("\t")] for line in fp.read().splitlines()
+            ]
             data = [item for item in data if item[0] not in done]
 
         with open(error_file, "a") as errfp:
@@ -53,7 +54,7 @@ class BannerUntag(Task):
     def _process_data(self, data, errfile, donefile):
         chunksize = 50
         for chunkidx in range((len(data) + chunksize - 1) / chunksize):
-            chunk = data[chunkidx*chunksize:(chunkidx+1)*chunksize]
+            chunk = data[chunkidx * chunksize : (chunkidx + 1) * chunksize]
             if self.shutoff_enabled():
                 return
             self._process_chunk(chunk, errfile, donefile)
@@ -61,8 +62,12 @@ class BannerUntag(Task):
     def _process_chunk(self, chunk, errfile, donefile):
         pageids_to_revids = dict(chunk)
         res = self.site.api_query(
-            action="query", prop="revisions", rvprop="ids",
-            pageids="|".join(str(item[0]) for item in chunk), formatversion=2)
+            action="query",
+            prop="revisions",
+            rvprop="ids",
+            pageids="|".join(str(item[0]) for item in chunk),
+            formatversion=2,
+        )
 
         stage2 = []
         for pagedata in res["query"]["pages"]:
@@ -78,7 +83,7 @@ class BannerUntag(Task):
             if pageids_to_revids[pageid] == revid:
                 stage2.append(str(parentid))
             else:
-                self.logger.info(u"Skipping [[%s]], not latest edit" % title)
+                self.logger.info("Skipping [[%s]], not latest edit" % title)
                 donefile.write("%d\n" % pageid)
                 errfile.write("%s\n" % title.encode("utf8"))
 
@@ -86,8 +91,13 @@ class BannerUntag(Task):
             return
 
         res2 = self.site.api_query(
-            action="query", prop="revisions", rvprop="content", rvslots="main",
-            revids="|".join(stage2), formatversion=2)
+            action="query",
+            prop="revisions",
+            rvprop="content",
+            rvslots="main",
+            revids="|".join(stage2),
+            formatversion=2,
+        )
 
         for pagedata in res2["query"]["pages"]:
             revision = pagedata["revisions"][0]["slots"]["main"]
@@ -97,7 +107,7 @@ class BannerUntag(Task):
             title = pagedata["title"]
             content = revision["content"]
 
-            self.logger.debug(u"Reverting one edit on [[%s]]" % title)
+            self.logger.debug("Reverting one edit on [[%s]]" % title)
             page = self.site.get_page(title)
             page.edit(content, self.make_summary(self.summary), minor=True)
 

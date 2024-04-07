@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,8 +21,10 @@
 from earwigbot import wiki
 from earwigbot.commands import Command
 
+
 class AfCReport(Command):
     """Get information about an AfC submission by name."""
+
     name = "report"
 
     def process(self, data):
@@ -45,19 +45,24 @@ class AfCReport(Command):
             self.reply(data, msg)
             return
 
-        title = " ".join(data.args).replace("http://en.wikipedia.org/wiki/",
-                "").replace("http://enwp.org/", "").strip()
+        title = (
+            " ".join(data.args)
+            .replace("http://en.wikipedia.org/wiki/", "")
+            .replace("http://enwp.org/", "")
+            .strip()
+        )
         titles = [
-            title, "Draft:" + title,
+            title,
+            "Draft:" + title,
             "Wikipedia:Articles for creation/" + title,
-            "Wikipedia talk:Articles for creation/" + title
+            "Wikipedia talk:Articles for creation/" + title,
         ]
         for attempt in titles:
             page = self.site.get_page(attempt, follow_redirects=False)
             if page.exists == page.PAGE_EXISTS:
                 return self.report(page)
 
-        self.reply(data, "Submission \x0302{0}\x0F not found.".format(title))
+        self.reply(data, f"Submission \x0302{title}\x0f not found.")
 
     def report(self, page):
         url = page.url.encode("utf8")
@@ -67,11 +72,11 @@ class AfCReport(Command):
         user_name = user.name
         user_url = user.get_talkpage().url.encode("utf8")
 
-        msg1 = "AfC submission report for \x0302{0}\x0F ({1}):"
-        msg2 = "Status: \x0303{0}\x0F"
-        msg3 = "Submitted by \x0302{0}\x0F ({1})"
+        msg1 = "AfC submission report for \x0302{0}\x0f ({1}):"
+        msg2 = "Status: \x0303{0}\x0f"
+        msg3 = "Submitted by \x0302{0}\x0f ({1})"
         if status == "accepted":
-            msg3 = "Reviewed by \x0302{0}\x0F ({1})"
+            msg3 = "Reviewed by \x0302{0}\x0f ({1})"
 
         self.reply(self.data, msg1.format(page.title.encode("utf8"), url))
         self.say(self.data.chan, msg2.format(status))

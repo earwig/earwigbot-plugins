@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2019 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,9 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import re
 from collections import OrderedDict
 from datetime import datetime
-import re
 from os.path import expanduser
 from threading import Lock
 from time import sleep
@@ -30,8 +28,7 @@ from time import sleep
 import mwparserfromhell
 import oursql
 
-from earwigbot import exceptions
-from earwigbot import wiki
+from earwigbot import exceptions, wiki
 from earwigbot.tasks import Task
 
 _DEFAULT_PAGE_TEXT = """<noinclude><!-- You can edit anything on this page \
@@ -47,6 +44,7 @@ templates it uses, documented in [[Template:AfC statistics/doc]]. -->
 
 _PER_CHART_LIMIT = 1000
 
+
 class AfCStatistics(Task):
     """A task to generate statistics for WikiProject Articles for Creation.
 
@@ -55,6 +53,7 @@ class AfCStatistics(Task):
     every four minutes and saved once an hour, on the hour, to subpages of
     self.pageroot. In the live bot, this is "Template:AfC statistics".
     """
+
     name = "afc_statistics"
     number = 2
 
@@ -75,7 +74,9 @@ class AfCStatistics(Task):
         self.pageroot = cfg.get("page", "Template:AfC statistics")
         self.pending_cat = cfg.get("pending", "Pending AfC submissions")
         self.ignore_list = cfg.get("ignoreList", [])
-        default_summary = "Updating statistics for [[WP:WPAFC|WikiProject Articles for creation]]."
+        default_summary = (
+            "Updating statistics for [[WP:WPAFC|WikiProject Articles for creation]]."
+        )
         self.summary = self.make_summary(cfg.get("summary", default_summary))
 
         # Templates used in chart generation:
@@ -143,24 +144,29 @@ class AfCStatistics(Task):
 
     def _save_page(self, name, chart, summary):
         """Save a statistics chart to a single page."""
-        page = self.site.get_page(u"{}/{}".format(self.pageroot, name))
+        page = self.site.get_page(f"{self.pageroot}/{name}")
         try:
             text = page.get()
         except exceptions.PageNotFoundError:
             text = _DEFAULT_PAGE_TEXT % {"pageroot": self.pageroot}
 
-        newtext = re.sub(u"<!-- stat begin -->(.*?)<!-- stat end -->",
-                         "<!-- stat begin -->" + chart + "<!-- stat end -->",
-                         text, flags=re.DOTALL)
+        newtext = re.sub(
+            "<!-- stat begin -->(.*?)<!-- stat end -->",
+            "<!-- stat begin -->" + chart + "<!-- stat end -->",
+            text,
+            flags=re.DOTALL,
+        )
         if newtext == text:
-            self.logger.info(u"Chart for {} unchanged; not saving".format(name))
+            self.logger.info(f"Chart for {name} unchanged; not saving")
             return
 
-        newtext = re.sub("<!-- sig begin -->(.*?)<!-- sig end -->",
-                         "<!-- sig begin -->~~~ at ~~~~~<!-- sig end -->",
-                         newtext)
+        newtext = re.sub(
+            "<!-- sig begin -->(.*?)<!-- sig end -->",
+            "<!-- sig begin -->~~~ at ~~~~~<!-- sig end -->",
+            newtext,
+        )
         page.edit(newtext, summary, minor=True, bot=True)
-        self.logger.info(u"Chart for {} saved to [[{}]]".format(name, page.title))
+        self.logger.info(f"Chart for {name} saved to [[{page.title}]]")
 
     def _compile_charts(self):
         """Compile and return all statistics information from our local db."""
@@ -168,20 +174,20 @@ class AfCStatistics(Task):
         with self.conn.cursor(oursql.DictCursor) as cursor:
             cursor.execute("SELECT * FROM chart")
             for chart in cursor:
-                name = chart['chart_name']
+                name = chart["chart_name"]
                 stats[name] = self._compile_chart(chart)
         return stats
 
     def _compile_chart(self, chart_info):
         """Compile and return a single statistics chart."""
-        chart = self.tl_header + "|" + chart_info['chart_title']
-        if chart_info['chart_special_title']:
-            chart += "|" + chart_info['chart_special_title']
+        chart = self.tl_header + "|" + chart_info["chart_title"]
+        if chart_info["chart_special_title"]:
+            chart += "|" + chart_info["chart_special_title"]
         chart = "{{" + chart + "}}"
 
         query = "SELECT * FROM page JOIN row ON page_id = row_id WHERE row_chart = ?"
         with self.conn.cursor(oursql.DictCursor) as cursor:
-            cursor.execute(query, (chart_info['chart_id'],))
+            cursor.execute(query, (chart_info["chart_id"],))
             rows = cursor.fetchall()
             skipped = max(0, len(rows) - _PER_CHART_LIMIT)
             rows = rows[:_PER_CHART_LIMIT]
@@ -190,7 +196,7 @@ class AfCStatistics(Task):
 
         footer = "{{" + self.tl_footer
         if skipped:
-            footer += "|skip={}".format(skipped)
+            footer += f"|skip={skipped}"
         footer += "}}"
         chart += "\n" + footer + "\n"
         return chart
@@ -201,9 +207,11 @@ class AfCStatistics(Task):
         'page' is a dict of page information, taken as a row from the page
         table, where keys are column names and values are their cell contents.
         """
-        row = u"{0}|s={page_status}|t={page_title}|z={page_size}|"
+        row = "{0}|s={page_status}|t={page_title}|z={page_size}|"
         if page["page_special_oldid"]:
-            row += "sr={page_special_user}|sd={page_special_time}|si={page_special_oldid}|"
+            row += (
+                "sr={page_special_user}|sd={page_special_time}|si={page_special_oldid}|"
+            )
         row += "mr={page_modify_user}|md={page_modify_time}|mi={page_modify_oldid}"
 
         page["page_special_time"] = self._fmt_time(page["page_special_time"])
@@ -236,7 +244,7 @@ class AfCStatistics(Task):
         self.logger.info("Starting sync")
 
         replag = self.site.get_replag()
-        self.logger.debug("Server replag is {0}".format(replag))
+        self.logger.debug(f"Server replag is {replag}")
         if replag > 600 and not kwargs.get("ignore_replag"):
             msg = "Sync canceled as replag ({0} secs) is greater than ten minutes"
             self.logger.warn(msg.format(replag))
@@ -277,18 +285,18 @@ class AfCStatistics(Task):
             if oldid == real_oldid:
                 continue
 
-            msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
+            msg = "Updating page [[{0}]] (id: {1}) @ {2}"
             self.logger.debug(msg.format(title, pageid, oldid))
-            msg = u"  {0}: oldid: {1} -> {2}"
+            msg = "  {0}: oldid: {1} -> {2}"
             self.logger.debug(msg.format(pageid, oldid, real_oldid))
             real_title = real_title.decode("utf8").replace("_", " ")
             ns = self.site.namespace_id_to_name(real_ns)
             if ns:
-                real_title = u":".join((ns, real_title))
+                real_title = ":".join((ns, real_title))
             try:
                 self._update_page(cursor, pageid, real_title)
             except Exception:
-                e = u"Error updating page [[{0}]] (id: {1})"
+                e = "Error updating page [[{0}]] (id: {1})"
                 self.logger.exception(e.format(real_title, pageid))
 
     def _add_untracked(self, cursor):
@@ -317,15 +325,15 @@ class AfCStatistics(Task):
             title = title.decode("utf8").replace("_", " ")
             ns_name = self.site.namespace_id_to_name(ns)
             if ns_name:
-                title = u":".join((ns_name, title))
+                title = ":".join((ns_name, title))
             if title in self.ignore_list or ns == wiki.NS_CATEGORY:
                 continue
-            msg = u"Tracking page [[{0}]] (id: {1})".format(title, pageid)
+            msg = f"Tracking page [[{title}]] (id: {pageid})"
             self.logger.debug(msg)
             try:
                 self._track_page(cursor, pageid, title)
             except Exception:
-                e = u"Error tracking page [[{0}]] (id: {1})"
+                e = "Error tracking page [[{0}]] (id: {1})"
                 self.logger.exception(e.format(title, pageid))
 
     def _update_stale(self, cursor):
@@ -345,12 +353,12 @@ class AfCStatistics(Task):
         cursor.execute(query)
 
         for pageid, title, oldid in cursor:
-            msg = u"Updating page [[{0}]] (id: {1}) @ {2}"
+            msg = "Updating page [[{0}]] (id: {1}) @ {2}"
             self.logger.debug(msg.format(title, pageid, oldid))
             try:
                 self._update_page(cursor, pageid, title)
             except Exception:
-                e = u"Error updating page [[{0}]] (id: {1})"
+                e = "Error updating page [[{0}]] (id: {1})"
                 self.logger.exception(e.format(title, pageid))
 
     def _delete_old(self, cursor):
@@ -370,7 +378,7 @@ class AfCStatistics(Task):
 
     def _untrack_page(self, cursor, pageid):
         """Remove a page, given by ID, from our database."""
-        self.logger.debug("Untracking page (id: {0})".format(pageid))
+        self.logger.debug(f"Untracking page (id: {pageid})")
         query = """DELETE FROM page, row, updatelog USING page JOIN row
                    ON page_id = row_id JOIN updatelog ON page_id = update_id
                    WHERE page_id = ?"""
@@ -384,14 +392,14 @@ class AfCStatistics(Task):
         """
         content = self._get_content(pageid)
         if content is None:
-            msg = u"Could not get page content for [[{0}]]".format(title)
+            msg = f"Could not get page content for [[{title}]]"
             self.logger.error(msg)
             return
 
         namespace = self.site.get_page(title).namespace
         status, chart = self._get_status_and_chart(content, namespace)
         if chart == self.CHART_NONE:
-            msg = u"Could not find a status for [[{0}]]".format(title)
+            msg = f"Could not find a status for [[{title}]]"
             self.logger.warn(msg)
             return
 
@@ -403,8 +411,22 @@ class AfCStatistics(Task):
         query2 = "INSERT INTO page VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         query3 = "INSERT INTO updatelog VALUES (?, ?)"
         cursor.execute(query1, (pageid, chart))
-        cursor.execute(query2, (pageid, status, title, len(content), notes,
-                                m_user, m_time, m_id, s_user, s_time, s_id))
+        cursor.execute(
+            query2,
+            (
+                pageid,
+                status,
+                title,
+                len(content),
+                notes,
+                m_user,
+                m_time,
+                m_id,
+                s_user,
+                s_time,
+                s_id,
+            ),
+        )
         cursor.execute(query3, (pageid, datetime.utcnow()))
 
     def _update_page(self, cursor, pageid, title):
@@ -416,7 +438,7 @@ class AfCStatistics(Task):
         """
         content = self._get_content(pageid)
         if content is None:
-            msg = u"Could not get page content for [[{0}]]".format(title)
+            msg = f"Could not get page content for [[{title}]]"
             self.logger.error(msg)
             return
 
@@ -437,12 +459,14 @@ class AfCStatistics(Task):
             self._update_page_title(cursor, result, pageid, title)
 
         if m_id != result["page_modify_oldid"]:
-            self._update_page_modify(cursor, result, pageid, len(content),
-                                     m_user, m_time, m_id)
+            self._update_page_modify(
+                cursor, result, pageid, len(content), m_user, m_time, m_id
+            )
 
         if status != result["page_status"]:
-            special = self._update_page_status(cursor, result, pageid, content,
-                                               status, chart)
+            special = self._update_page_status(
+                cursor, result, pageid, content, status, chart
+            )
             s_user = special[0]
         else:
             s_user = result["page_special_user"]
@@ -461,7 +485,7 @@ class AfCStatistics(Task):
         query = "UPDATE page SET page_title = ? WHERE page_id = ?"
         cursor.execute(query, (title, pageid))
 
-        msg = u"  {0}: title: {1} -> {2}"
+        msg = "  {0}: title: {1} -> {2}"
         self.logger.debug(msg.format(pageid, result["page_title"], title))
 
     def _update_page_modify(self, cursor, result, pageid, size, m_user, m_time, m_id):
@@ -471,10 +495,16 @@ class AfCStatistics(Task):
                    WHERE page_id = ?"""
         cursor.execute(query, (size, m_user, m_time, m_id, pageid))
 
-        msg = u"  {0}: modify: {1} / {2} / {3} -> {4} / {5} / {6}"
-        msg = msg.format(pageid, result["page_modify_user"],
-                         result["page_modify_time"],
-                         result["page_modify_oldid"], m_user, m_time, m_id)
+        msg = "  {0}: modify: {1} / {2} / {3} -> {4} / {5} / {6}"
+        msg = msg.format(
+            pageid,
+            result["page_modify_user"],
+            result["page_modify_time"],
+            result["page_modify_oldid"],
+            m_user,
+            m_time,
+            m_id,
+        )
         self.logger.debug(msg)
 
     def _update_page_status(self, cursor, result, pageid, content, status, chart):
@@ -487,16 +517,25 @@ class AfCStatistics(Task):
         cursor.execute(query1, (status, chart, pageid))
 
         msg = "  {0}: status: {1} ({2}) -> {3} ({4})"
-        self.logger.debug(msg.format(pageid, result["page_status"],
-                                     result["row_chart"], status, chart))
+        self.logger.debug(
+            msg.format(
+                pageid, result["page_status"], result["row_chart"], status, chart
+            )
+        )
 
         s_user, s_time, s_id = self._get_special(pageid, content, chart)
         if s_id != result["page_special_oldid"]:
             cursor.execute(query2, (s_user, s_time, s_id, pageid))
-            msg = u"  {0}: special: {1} / {2} / {3} -> {4} / {5} / {6}"
-            msg = msg.format(pageid, result["page_special_user"],
-                             result["page_special_time"],
-                             result["page_special_oldid"], s_user, s_time, s_id)
+            msg = "  {0}: special: {1} / {2} / {3} -> {4} / {5} / {6}"
+            msg = msg.format(
+                pageid,
+                result["page_special_user"],
+                result["page_special_time"],
+                result["page_special_oldid"],
+                s_user,
+                s_time,
+                s_id,
+            )
             self.logger.debug(msg)
 
         return s_user, s_time, s_id
@@ -529,9 +568,13 @@ class AfCStatistics(Task):
         """Get the content of a revision by ID from the API."""
         if revid in self.revision_cache:
             return self.revision_cache[revid]
-        res = self.site.api_query(action="query", prop="revisions",
-                                  rvprop="content", rvslots="main",
-                                  revids=revid)
+        res = self.site.api_query(
+            action="query",
+            prop="revisions",
+            rvprop="content",
+            rvslots="main",
+            revids=revid,
+        )
         try:
             revision = res["query"]["pages"].values()[0]["revisions"][0]
             content = revision["slots"]["main"]["*"]
@@ -577,7 +620,7 @@ class AfCStatistics(Task):
             "afc submission/reviewing": "R",
             "afc submission/pending": "P",
             "afc submission/draft": "T",
-            "afc submission/declined": "D"
+            "afc submission/declined": "D",
         }
         statuses = []
         code = mwparserfromhell.parse(content)
@@ -629,7 +672,7 @@ class AfCStatistics(Task):
             self.CHART_ACCEPT: self.get_accepted,
             self.CHART_REVIEW: self.get_reviewing,
             self.CHART_PEND: self.get_pending,
-            self.CHART_DECLINE: self.get_decline
+            self.CHART_DECLINE: self.get_decline,
         }
         return charts[chart](pageid, content)
 
@@ -675,7 +718,8 @@ class AfCStatistics(Task):
         params = ("decliner", "declinets")
         res = self._get_status_helper(pageid, content, ("D"), params)
         return res or self._search_history(
-            pageid, self.CHART_DECLINE, ["D"], ["R", "P", "T"])
+            pageid, self.CHART_DECLINE, ["D"], ["R", "P", "T"]
+        )
 
     def _get_status_helper(self, pageid, content, statuses, params):
         """Helper function for get_pending() and get_decline()."""
@@ -686,7 +730,7 @@ class AfCStatistics(Task):
             if tmpl.name.strip().lower() == "afc submission":
                 if all([tmpl.has(par, ignore_empty=True) for par in params]):
                     if status in statuses:
-                        data = [unicode(tmpl.get(par).value) for par in params]
+                        data = [str(tmpl.get(par).value) for par in params]
                         submits.append(data)
         if not submits:
             return None
@@ -774,7 +818,7 @@ class AfCStatistics(Task):
         if re.search(regex, content):
             notes += "|nc=1"  # Submission is a suspected copyvio
 
-        if not re.search(r"\<ref\s*(.*?)\>(.*?)\</ref\>", content, re.I|re.S):
+        if not re.search(r"\<ref\s*(.*?)\>(.*?)\</ref\>", content, re.I | re.S):
             regex = r"(https?:)|\[//(?!{0})([^ \]\t\n\r\f\v]+?)"
             sitedomain = re.escape(self.site.domain)
             if re.search(regex.format(sitedomain), content, re.I | re.S):

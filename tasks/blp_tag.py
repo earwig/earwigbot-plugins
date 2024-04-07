@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,9 +20,11 @@
 
 from earwigbot.tasks import Task
 
+
 class BLPTag(Task):
     """A task to add |blp=yes to ``{{WPB}}`` or ``{{WPBS}}`` when it is used
     along with ``{{WP Biography}}``."""
+
     name = "blp_tag"
     number = 12
 

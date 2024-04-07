@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2015 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,28 +23,49 @@ from datetime import datetime
 import mwparserfromhell
 
 from earwigbot.tasks import Task
-from earwigbot.wiki.constants import *
+from earwigbot.wiki.constants import (
+    NS_CATEGORY,
+    NS_CATEGORY_TALK,
+    NS_FILE,
+    NS_FILE_TALK,
+    NS_HELP_TALK,
+    NS_PROJECT,
+    NS_PROJECT_TALK,
+    NS_TALK,
+    NS_TEMPLATE,
+    NS_TEMPLATE_TALK,
+    NS_USER,
+)
 
 NS_DRAFT = 118
 
+
 class AfCUndated(Task):
     """A task to clear [[Category:Undated AfC submissions]]."""
+
     name = "afc_undated"
     number = 5
 
     def setup(self):
         cfg = self.config.tasks.get(self.name, {})
         self.category = cfg.get("category", "Undated AfC submissions")
-        default_summary = "Adding timestamp to undated [[WP:AFC|Articles for creation]] submission."
+        default_summary = (
+            "Adding timestamp to undated [[WP:AFC|Articles for creation]] submission."
+        )
         self.summary = self.make_summary(cfg.get("summary", default_summary))
         self.namespaces = {
             "submission": [NS_USER, NS_PROJECT, NS_PROJECT_TALK, NS_DRAFT],
-            "talk": [NS_TALK, NS_FILE_TALK, NS_TEMPLATE_TALK, NS_HELP_TALK,
-                     NS_CATEGORY_TALK]
+            "talk": [
+                NS_TALK,
+                NS_FILE_TALK,
+                NS_TEMPLATE_TALK,
+                NS_HELP_TALK,
+                NS_CATEGORY_TALK,
+            ],
         }
         self.aliases = {
             "submission": ["AfC submission"],
-            "talk": ["WikiProject Articles for creation"]
+            "talk": ["WikiProject Articles for creation"],
         }
 
     def run(self, **kwargs):
@@ -59,7 +78,7 @@ class AfCUndated(Task):
 
         self.site = self.bot.wiki.get_site()
         category = self.site.get_category(self.category)
-        logmsg = u"Undated category [[{0}]] has {1} members"
+        logmsg = "Undated category [[{0}]] has {1} members"
         self.logger.info(logmsg.format(category.title, category.size))
         if category.size:
             self._build_aliases()
@@ -77,8 +96,12 @@ class AfCUndated(Task):
             base = self.aliases[key][0]
             aliases = [base, "Template:" + base]
             result = self.site.api_query(
-                action="query", list="backlinks", bllimit=50,
-                blfilterredir="redirects", bltitle=aliases[1])
+                action="query",
+                list="backlinks",
+                bllimit=50,
+                blfilterredir="redirects",
+                bltitle=aliases[1],
+            )
             for data in result["query"]["backlinks"]:
                 redir = self.site.get_page(data["title"])
                 aliases.append(redir.title)
@@ -89,7 +112,7 @@ class AfCUndated(Task):
     def _process_page(self, page):
         """Date the necessary templates inside a page object."""
         if not page.check_exclusion():
-            msg = u"Skipping [[{0}]]; bot excluded from editing"
+            msg = "Skipping [[{0}]]; bot excluded from editing"
             self.logger.info(msg.format(page.title))
             return
 
@@ -102,7 +125,7 @@ class AfCUndated(Task):
             aliases = self.aliases["talk"]
             timestamp, reviewer = self._get_talkdata(page)
         else:
-            msg = u"[[{0}]] is undated, but in a namespace I don't know how to process"
+            msg = "[[{0}]] is undated, but in a namespace I don't know how to process"
             self.logger.warn(msg.format(page.title))
             return
         if not timestamp:
@@ -120,22 +143,27 @@ class AfCUndated(Task):
                 changes += 1
 
         if changes:
-            msg = u"Dating [[{0}]]: {1}x {2}"
+            msg = "Dating [[{0}]]: {1}x {2}"
             self.logger.info(msg.format(page.title, changes, aliases[0]))
-            page.edit(unicode(code), self.summary)
+            page.edit(str(code), self.summary)
         else:
-            msg = u"[[{0}]] is undated, but I can't figure out what to replace"
+            msg = "[[{0}]] is undated, but I can't figure out what to replace"
             self.logger.warn(msg.format(page.title))
 
     def _get_timestamp(self, page):
         """Get the timestamp associated with a particular submission."""
-        self.logger.debug(u"[[{0}]]: Getting timestamp".format(page.title))
+        self.logger.debug(f"[[{page.title}]]: Getting timestamp")
         result = self.site.api_query(
-            action="query", prop="revisions", rvprop="timestamp", rvlimit=1,
-            rvdir="newer", titles=page.title)
+            action="query",
+            prop="revisions",
+            rvprop="timestamp",
+            rvlimit=1,
+            rvdir="newer",
+            titles=page.title,
+        )
         data = result["query"]["pages"].values()[0]
         if "revisions" not in data:
-            log = u"Couldn't get timestamp for [[{0}]]"
+            log = "Couldn't get timestamp for [[{0}]]"
             self.logger.warn(log.format(page.title))
             return None
         raw = data["revisions"][0]["timestamp"]
@@ -150,32 +178,33 @@ class AfCUndated(Task):
         """
         subject = page.toggle_talk()
         if subject.exists == subject.PAGE_MISSING:
-            log = u"Couldn't process [[{0}]]: subject page doesn't exist"
+            log = "Couldn't process [[{0}]]: subject page doesn't exist"
             self.logger.warn(log.format(page.title))
             return None, None
         if subject.namespace == NS_FILE:
-            self.logger.debug(u"[[{0}]]: Getting filedata".format(page.title))
+            self.logger.debug(f"[[{page.title}]]: Getting filedata")
             return self._get_filedata(subject)
 
-        self.logger.debug(u"[[{0}]]: Getting talkdata".format(page.title))
+        self.logger.debug(f"[[{page.title}]]: Getting talkdata")
         user, ts, revid = self.statistics.get_accepted(subject.pageid)
         if not ts:
             if subject.is_redirect or subject.namespace == NS_CATEGORY:
-                log = u"[[{0}]]: Couldn't get talkdata; trying redir/cat data"
+                log = "[[{0}]]: Couldn't get talkdata; trying redir/cat data"
                 self.logger.debug(log.format(page.title))
                 return self._get_redirdata(subject)
-            log = u"Couldn't get talkdata for [[{0}]]"
+            log = "Couldn't get talkdata for [[{0}]]"
             self.logger.warn(log.format(page.title))
             return None, None
         return ts.strftime("%Y%m%d%H%M%S"), user
 
     def _get_filedata(self, page):
         """Get the timestamp and reviewer associated with a file talkpage."""
-        result = self.site.api_query(action="query", prop="imageinfo",
-                                     titles=page.title)
+        result = self.site.api_query(
+            action="query", prop="imageinfo", titles=page.title
+        )
         data = result["query"]["pages"].values()[0]
         if "imageinfo" not in data:
-            log = u"Couldn't get filedata for [[{0}]]"
+            log = "Couldn't get filedata for [[{0}]]"
             self.logger.warn(log.format(page.title))
             return None, None
         info = data["imageinfo"][0]
@@ -185,10 +214,15 @@ class AfCUndated(Task):
     def _get_redirdata(self, page):
         """Get the timestamp and reviewer for a redirect/category talkpage."""
         result = self.site.api_query(
-            action="query", prop="revisions", rvprop="timestamp|user",
-            rvlimit=1, rvdir="newer", titles=page.title)
+            action="query",
+            prop="revisions",
+            rvprop="timestamp|user",
+            rvlimit=1,
+            rvdir="newer",
+            titles=page.title,
+        )
         if "batchcomplete" not in result:
-            log = u"Couldn't get redir/cat talkdata for [[{0}]]: has multiple revisions"
+            log = "Couldn't get redir/cat talkdata for [[{0}]]: has multiple revisions"
             self.logger.warn(log.format(page.title))
             return None, None
         rev = result["query"]["pages"].values()[0]["revisions"][0]

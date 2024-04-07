@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -30,9 +28,11 @@ import oursql
 
 from earwigbot.tasks import Task
 
+
 class AfCCopyvios(Task):
     """A task to check newly-edited [[WP:AFC]] submissions for copyright
     violations."""
+
     name = "afc_copyvios"
     number = 1
 
@@ -44,10 +44,11 @@ class AfCCopyvios(Task):
         self.max_queries = cfg.get("maxQueries", 10)
         self.max_time = cfg.get("maxTime", 150)
         self.cache_results = cfg.get("cacheResults", False)
-        default_summary = "Tagging suspected [[WP:COPYVIO|copyright violation]] of {url}."
+        default_summary = (
+            "Tagging suspected [[WP:COPYVIO|copyright violation]] of {url}."
+        )
         self.summary = self.make_summary(cfg.get("summary", default_summary))
-        default_tags = [
-            "Db-g12", "Db-copyvio", "Copyvio", "Copyviocore" "Copypaste"]
+        default_tags = ["Db-g12", "Db-copyvio", "Copyvio", "Copyviocore" "Copypaste"]
         self.tags = default_tags + cfg.get("tags", [])
 
         # Connection data for our SQL database:
@@ -76,38 +77,39 @@ class AfCCopyvios(Task):
         """Detect copyvios in 'page' and add a note if any are found."""
         title = page.title
         if title in self.ignore_list:
-            msg = u"Skipping [[{0}]], in ignore list"
+            msg = "Skipping [[{0}]], in ignore list"
             self.logger.info(msg.format(title))
             return
 
         pageid = page.pageid
         if self.has_been_processed(pageid):
-            msg = u"Skipping [[{0}]], already processed"
+            msg = "Skipping [[{0}]], already processed"
             self.logger.info(msg.format(title))
             return
         code = mwparserfromhell.parse(page.get())
         if not self.is_pending(code):
-            msg = u"Skipping [[{0}]], not a pending submission"
+            msg = "Skipping [[{0}]], not a pending submission"
             self.logger.info(msg.format(title))
             return
         tag = self.is_tagged(code)
         if tag:
-            msg = u"Skipping [[{0}]], already tagged with '{1}'"
+            msg = "Skipping [[{0}]], already tagged with '{1}'"
             self.logger.info(msg.format(title, tag))
             return
 
-        self.logger.info(u"Checking [[{0}]]".format(title))
-        result = page.copyvio_check(self.min_confidence, self.max_queries,
-                                    self.max_time)
+        self.logger.info(f"Checking [[{title}]]")
+        result = page.copyvio_check(
+            self.min_confidence, self.max_queries, self.max_time
+        )
         url = result.url
-        orig_conf = "{0}%".format(round(result.confidence * 100, 2))
+        orig_conf = f"{round(result.confidence * 100, 2)}%"
 
         if result.violation:
             if self.handle_violation(title, page, url, orig_conf):
                 self.log_processed(pageid)
                 return
         else:
-            msg = u"No violations detected in [[{0}]] (best: {1} at {2} confidence)"
+            msg = "No violations detected in [[{0}]] (best: {1} at {2} confidence)"
             self.logger.info(msg.format(title, url, orig_conf))
 
         self.log_processed(pageid)
@@ -122,22 +124,22 @@ class AfCCopyvios(Task):
         content = page.get()
         tag = self.is_tagged(mwparserfromhell.parse(content))
         if tag:
-            msg = u"A violation was detected in [[{0}]], but it was tagged"
-            msg += u" in the mean time with '{1}' (best: {2} at {3} confidence)"
+            msg = "A violation was detected in [[{0}]], but it was tagged"
+            msg += " in the mean time with '{1}' (best: {2} at {3} confidence)"
             self.logger.info(msg.format(title, tag, url, orig_conf))
             return True
         confirm = page.copyvio_compare(url, self.min_confidence)
-        new_conf = "{0}%".format(round(confirm.confidence * 100, 2))
+        new_conf = f"{round(confirm.confidence * 100, 2)}%"
         if not confirm.violation:
-            msg = u"A violation was detected in [[{0}]], but couldn't be confirmed."
-            msg += u" It may have just been edited (best: {1} at {2} -> {3} confidence)"
+            msg = "A violation was detected in [[{0}]], but couldn't be confirmed."
+            msg += " It may have just been edited (best: {1} at {2} -> {3} confidence)"
             self.logger.info(msg.format(title, url, orig_conf, new_conf))
             return True
 
-        msg = u"Found violation: [[{0}]] -> {1} ({2} confidence)"
+        msg = "Found violation: [[{0}]] -> {1} ({2} confidence)"
         self.logger.info(msg.format(title, url, new_conf))
         safeurl = quote(url.encode("utf8"), safe="/:").decode("utf8")
-        template = u"\{\{{0}|url={1}|confidence={2}\}\}\n"
+        template = "\{\{{0}|url={1}|confidence={2}\}\}\n"
         template = template.format(self.template, safeurl, new_conf)
         newtext = template + content
         if "{url}" in self.summary:
@@ -206,9 +208,11 @@ class AfCCopyvios(Task):
         query1 = "DELETE FROM cache WHERE cache_id = ?"
         query2 = "INSERT INTO cache VALUES (?, DEFAULT, ?, ?)"
         query3 = "INSERT INTO cache_data VALUES (DEFAULT, ?, ?, ?, ?)"
-        cache_id = buffer(sha256("1:1:" + page.get().encode("utf8")).digest())
-        data = [(cache_id, source.url, source.confidence, source.skipped)
-                for source in result.sources]
+        cache_id = sha256("1:1:" + page.get().encode("utf8")).digest()
+        data = [
+            (cache_id, source.url, source.confidence, source.skipped)
+            for source in result.sources
+        ]
         with self.conn.cursor() as cursor:
             cursor.execute("START TRANSACTION")
             cursor.execute(query1, (cache_id,))

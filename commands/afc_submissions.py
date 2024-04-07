@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,8 +21,10 @@
 from earwigbot import wiki
 from earwigbot.commands import Command
 
+
 class AfCSubmissions(Command):
     """Link the user directly to some pending AfC submissions."""
+
     name = "submissions"
     commands = ["submissions", "subs"]
 
@@ -63,4 +63,4 @@ class AfCSubmissions(Command):
                 continue
             urls.append(member.url.encode("utf8"))
         pages = ", ".join(urls[:number])
-        self.reply(data, "{0} pending AfC subs: {1}".format(number, pages))
+        self.reply(data, f"{number} pending AfC subs: {pages}")

@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2016 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,8 +25,10 @@ from time import time
 from earwigbot.commands import Command
 from earwigbot.exceptions import APIError
 
+
 class BlockMonitor(Command):
     """Monitors for on-wiki blocked users joining a particular channel."""
+
     name = "block_monitor"
     hooks = ["join"]
 
@@ -43,8 +43,9 @@ class BlockMonitor(Command):
         self._last = None
 
     def check(self, data):
-        return (self._monitor_chan and self._report_chan and
-                data.chan == self._monitor_chan)
+        return (
+            self._monitor_chan and self._report_chan and data.chan == self._monitor_chan
+        )
 
     def process(self, data):
         ip = self._get_ip(data.host)
@@ -61,12 +62,16 @@ class BlockMonitor(Command):
         if not block:
             return
 
-        msg = ("\x02[{note}]\x0F Joined user \x02{nick}\x0F is {type}blocked "
-               "on-wiki ([[User:{user}]]) because: {reason}")
+        msg = (
+            "\x02[{note}]\x0f Joined user \x02{nick}\x0f is {type}blocked "
+            "on-wiki ([[User:{user}]]) because: {reason}"
+        )
         self.say(self._report_chan, msg.format(nick=data.nick, **block))
 
-        log = ("Reporting block ({note}): {nick} is [[User:{user}]], "
-               "{type}blocked because: {reason}")
+        log = (
+            "Reporting block ({note}): {nick} is [[User:{user}]], "
+            "{type}blocked because: {reason}"
+        )
         self.logger.info(log.format(nick=data.nick, **block))
 
     def _get_ip(self, host):
@@ -84,9 +89,15 @@ class BlockMonitor(Command):
         site = self.bot.wiki.get_site()
         try:
             result = site.api_query(
-                action="query", list="blocks|globalblocks", bkip=ip, bgip=ip,
-                bklimit=1, bglimit=1, bkprop="user|reason|range",
-                bgprop="address|reason|range")
+                action="query",
+                list="blocks|globalblocks",
+                bkip=ip,
+                bgip=ip,
+                bklimit=1,
+                bglimit=1,
+                bkprop="user|reason|range",
+                bgprop="address|reason|range",
+            )
         except APIError:
             return
         lblocks = result["query"]["blocks"]

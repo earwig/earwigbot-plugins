@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2015 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,19 +18,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from __future__ import unicode_literals
 from time import sleep
+
+import mwparserfromhell
 
 from earwigbot.tasks import Task
 from earwigbot.wiki import constants
 
-import mwparserfromhell
 
 class InfoboxStation(Task):
     """
     A task to replace ``{{Infobox China station}}`` and
     ``{{Infobox Japan station}}`` with ``{{Infobox station}}``.
     """
+
     name = "infobox_station"
     number = 20
 
@@ -43,19 +42,20 @@ class InfoboxStation(Task):
                 ["Infobox China station", "Infobox china station"],
                 "Infobox China station/sandbox",
                 "Infobox China station/sandbox/cats",
-                "Wikipedia:Templates for discussion/Log/2015 February 8#Template:Infobox China station"
+                "Wikipedia:Templates for discussion/Log/2015 February 8#Template:Infobox China station",
             ),
             "Japan": (
                 ["Infobox Japan station", "Infobox japan station"],
                 "Infobox Japan station/sandbox",
                 "Infobox Japan station/sandbox/cats",
-                "Wikipedia:Templates for discussion/Log/2015 May 9#Template:Infobox Japan station"
+                "Wikipedia:Templates for discussion/Log/2015 May 9#Template:Infobox Japan station",
             ),
         }
         self._replacement = "{{Infobox station}}"
         self._sleep_time = 2
         self.summary = self.make_summary(
-            "Replacing {source} with {dest} per [[{discussion}|TfD]].")
+            "Replacing {source} with {dest} per [[{discussion}|TfD]]."
+        )
 
     def run(self, **kwargs):
         limit = int(kwargs.get("limit", kwargs.get("edits", 0)))
@@ -68,7 +68,7 @@ class InfoboxStation(Task):
         """
         Replace a template in all pages that transclude it.
         """
-        self.logger.info("Replacing {0} infobox template".format(name))
+        self.logger.info(f"Replacing {name} infobox template")
 
         count = 0
         for title in self._get_transclusions(args[0][0]):
@@ -82,15 +82,15 @@ class InfoboxStation(Task):
             page = self.site.get_page(title)
             self._process_page(page, args)
 
-        self.logger.info("All {0} infoboxes updated".format(name))
+        self.logger.info(f"All {name} infoboxes updated")
 
     def _process_page(self, page, args):
         """
         Process a single page to replace a template.
         """
-        self.logger.debug("Processing [[{0}]]".format(page.title))
+        self.logger.debug(f"Processing [[{page.title}]]")
         if not page.check_exclusion():
-            self.logger.warn("Bot excluded from [[{0}]]".format(page.title))
+            self.logger.warn(f"Bot excluded from [[{page.title}]]")
             return
 
         code = mwparserfromhell.parse(page.get(), skip_style_tags=True)
@@ -98,7 +98,7 @@ class InfoboxStation(Task):
         for tmpl in code.filter_templates():
             if tmpl.name.matches(args[0]):
                 tmpl.name = "subst:" + args[2]
-                cats.extend(self._get_cats(page, unicode(tmpl)))
+                cats.extend(self._get_cats(page, str(tmpl)))
                 tmpl.name = "subst:" + args[1]
 
         self._add_cats(code, cats)
@@ -108,19 +108,25 @@ class InfoboxStation(Task):
             return
 
         summary = self.summary.format(
-            source="{{" + args[0][0] + "}}", dest=self._replacement,
-            discussion=args[3])
-        page.edit(unicode(code), summary, minor=True)
+            source="{{" + args[0][0] + "}}", dest=self._replacement, discussion=args[3]
+        )
+        page.edit(str(code), summary, minor=True)
         sleep(self._sleep_time)
 
     def _add_cats(self, code, cats):
         """Add category data (*cats*) to wikicode."""
         current_cats = code.filter_wikilinks(
-            matches=lambda link: link.title.lower().startswith("category:"))
-        norm = lambda cat: cat.title.lower()[len("category:"):].strip()
+            matches=lambda link: link.title.lower().startswith("category:")
+        )
 
-        catlist = [unicode(cat) for cat in cats if not any(
-            norm(cur) == norm(cat) for cur in current_cats)]
+        def norm(cat):
+            return cat.title.lower()[len("category:") :].strip()
+
+        catlist = [
+            str(cat)
+            for cat in cats
+            if not any(norm(cur) == norm(cat) for cur in current_cats)
+        ]
         if not catlist:
             return
         text = "\n".join(catlist)
@@ -140,8 +146,9 @@ class InfoboxStation(Task):
         """
         Return the categories that should be added to the page.
         """
-        result = self.site.api_query(action="parse", title=page.title,
-                                     prop="text", onlypst=1, text=tmpl)
+        result = self.site.api_query(
+            action="parse", title=page.title, prop="text", onlypst=1, text=tmpl
+        )
         text = result["parse"]["text"]["*"]
         return mwparserfromhell.parse(text).filter_wikilinks()
 
@@ -154,6 +161,7 @@ class InfoboxStation(Task):
         LEFT JOIN page ON tl_from = page_id
         WHERE tl_namespace = ? AND tl_title = ? AND tl_from_namespace = ?"""
 
-        results = self.site.sql_query(query, (
-            constants.NS_TEMPLATE, tmpl.replace(" ", "_"), constants.NS_MAIN))
+        results = self.site.sql_query(
+            query, (constants.NS_TEMPLATE, tmpl.replace(" ", "_"), constants.NS_MAIN)
+        )
         return [title.decode("utf8").replace("_", " ") for (title,) in results]

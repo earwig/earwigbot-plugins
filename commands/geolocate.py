@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,14 +19,15 @@
 # SOFTWARE.
 
 from json import loads
-from socket import (AF_INET, AF_INET6, error as socket_error, gethostbyname,
-                    inet_pton)
-from urllib2 import urlopen
+from socket import AF_INET, AF_INET6, gethostbyname, inet_pton
+from urllib.request import urlopen
 
 from earwigbot.commands import Command
 
+
 class Geolocate(Command):
     """Geolocate an IP address (via http://ipinfodb.com/)."""
+
     name = "geolocate"
     commands = ["geolocate", "locate", "geo", "ip"]
 
@@ -43,7 +42,7 @@ class Geolocate(Command):
 
     def process(self, data):
         if not self.key:
-            msg = 'I need an API key for http://ipinfodb.com/ stored as \x0303config.commands["{0}"]["apiKey"]\x0F.'
+            msg = 'I need an API key for http://ipinfodb.com/ stored as \x0303config.commands["{0}"]["apiKey"]\x0f.'
             log = 'Need an API key for http://ipinfodb.com/ stored as config.commands["{0}"]["apiKey"]'
             self.reply(data, msg.format(self.name))
             self.logger.error(log.format(self.name))
@@ -54,12 +53,12 @@ class Geolocate(Command):
         else:
             try:
                 address = gethostbyname(data.host)
-            except socket_error:
-                msg = "Your hostname, \x0302{0}\x0F, is not an IP address!"
+            except OSError:
+                msg = "Your hostname, \x0302{0}\x0f, is not an IP address!"
                 self.reply(data, msg.format(data.host))
                 return
         if not self.is_ip(address):
-            msg = "\x0302{0}\x0F is not an IP address!"
+            msg = "\x0302{0}\x0f is not an IP address!"
             self.reply(data, msg.format(address))
             return
 
@@ -74,10 +73,10 @@ class Geolocate(Command):
         longitude = res["longitude"]
         utcoffset = res["timeZone"]
         if not country and not region and not city:
-            self.reply(data, "IP \x0302{0}\x0F not found.".format(address))
+            self.reply(data, f"IP \x0302{address}\x0f not found.")
             return
         if country == "-" and region == "-" and city == "-":
-            self.reply(data, "IP \x0302{0}\x0F is reserved.".format(address))
+            self.reply(data, f"IP \x0302{address}\x0f is reserved.")
             return
 
         msg = "{0}, {1}, {2} ({3}, {4}), UTC {5}"
@@ -91,9 +90,9 @@ class Geolocate(Command):
         """
         try:
             inet_pton(AF_INET, address)
-        except socket_error:
+        except OSError:
             try:
                 inet_pton(AF_INET6, address)
-            except socket_error:
+            except OSError:
                 return False
         return True

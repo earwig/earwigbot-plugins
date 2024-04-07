@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,9 +20,11 @@
 
 from earwigbot.tasks import Task
 
+
 class AfCCatDelink(Task):
     """A task to delink mainspace categories in declined [[WP:AFC]]
     submissions."""
+
     name = "afc_catdelink"
     number = 8
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,13 +20,15 @@
 
 from datetime import datetime
 from json import loads
-from urllib import quote
-from urllib2 import urlopen
+from urllib.parse import quote
+from urllib.request import urlopen
 
 from earwigbot.commands import Command
 
+
 class Weather(Command):
     """Get a weather forecast (via http://www.wunderground.com/)."""
+
     name = "weather"
     commands = ["weather", "weat", "forecast", "temperature", "temp"]
 
@@ -39,15 +39,15 @@ class Weather(Command):
         except KeyError:
             self.key = None
             addr = "http://wunderground.com/weather/api/"
-            config = 'config.commands["{0}"]["apiKey"]'.format(self.name)
+            config = f'config.commands["{self.name}"]["apiKey"]'
             log = "Cannot use without an API key from {0} stored as {1}"
             self.logger.warn(log.format(addr, config))
 
     def process(self, data):
         if not self.key:
             addr = "http://wunderground.com/weather/api/"
-            config = 'config.commands["{0}"]["apiKey"]'.format(self.name)
-            msg = "I need an API key from {0} stored as \x0303{1}\x0F."
+            config = f'config.commands["{self.name}"]["apiKey"]'
+            msg = "I need an API key from {0} stored as \x0303{1}\x0f."
             log = "Need an API key from {0} stored as {1}"
             self.reply(data, msg.format(addr, config))
             self.logger.error(log.format(addr, config))
@@ -58,21 +58,25 @@ class Weather(Command):
             if permdb.has_attr(data.host, "weather"):
                 location = permdb.get_attr(data.host, "weather")
             else:
-                msg = " ".join(("Where do you want the weather of? You can",
-                                "set a default with '!{0} default City,",
-                                "State' (or 'City, Country' if non-US)."))
+                msg = " ".join(
+                    (
+                        "Where do you want the weather of? You can",
+                        "set a default with '!{0} default City,",
+                        "State' (or 'City, Country' if non-US).",
+                    )
+                )
                 self.reply(data, msg.format(data.command))
                 return
         elif data.args[0] == "default":
             if data.args[1:]:
                 value = " ".join(data.args[1:])
                 permdb.set_attr(data.host, "weather", value)
-                msg = "\x0302{0}\x0F's default set to \x02{1}\x0F."
+                msg = "\x0302{0}\x0f's default set to \x02{1}\x0f."
                 self.reply(data, msg.format(data.host, value))
             else:
                 if permdb.has_attr(data.host, "weather"):
                     value = permdb.get_attr(data.host, "weather")
-                    msg = "\x0302{0}\x0F's default is \x02{1}\x0F."
+                    msg = "\x0302{0}\x0f's default is \x02{1}\x0f."
                     self.reply(data, msg.format(data.host, value))
                 else:
                     self.reply(data, "I need a value to set as your default.")
@@ -107,73 +111,82 @@ class Weather(Command):
         """Format the weather (as dict *data*) to be sent through IRC."""
         data = res["current_observation"]
         place = data["display_location"]["full"]
-        icon = self.get_icon(data["icon"], data["local_time_rfc822"],
-                             res["sun_phase"]).encode("utf8")
+        icon = self.get_icon(
+            data["icon"], data["local_time_rfc822"], res["sun_phase"]
+        ).encode("utf8")
         weather = data["weather"]
         temp_f, temp_c = data["temp_f"], data["temp_c"]
         humidity = data["relative_humidity"]
         wind_dir = data["wind_dir"]
         if wind_dir in ("North", "South", "East", "West"):
             wind_dir = wind_dir.lower()
-        wind = "{0} {1} mph".format(wind_dir, data["wind_mph"])
+        wind = "{} {} mph".format(wind_dir, data["wind_mph"])
         if float(data["wind_gust_mph"]) > float(data["wind_mph"]):
-            wind += " ({0} mph gusts)".format(data["wind_gust_mph"])
+            wind += " ({} mph gusts)".format(data["wind_gust_mph"])
 
-        msg = "\x02{0}\x0F: {1} {2}; {3}°F ({4}°C); {5} humidity; wind {6}"
+        msg = "\x02{0}\x0f: {1} {2}; {3}°F ({4}°C); {5} humidity; wind {6}"
         msg = msg.format(place, icon, weather, temp_f, temp_c, humidity, wind)
         if data["precip_today_in"] and float(data["precip_today_in"]) > 0:
-            msg += "; {0}″ precipitation today".format(data["precip_today_in"])
+            msg += "; {}″ precipitation today".format(data["precip_today_in"])
             if data["precip_1hr_in"] and float(data["precip_1hr_in"]) > 0:
-                msg += " ({0}″ past hour)".format(data["precip_1hr_in"])
+                msg += " ({}″ past hour)".format(data["precip_1hr_in"])
         return msg
 
     def get_icon(self, condition, local_time, sun_phase):
         """Return a unicode icon to describe the given weather condition."""
         icons = {
-            "chanceflurries": u"☃",
-            "chancerain": u"☂",
-            "chancesleet": u"☃",
-            "chancesnow": u"☃",
-            "chancetstorms": u"☂",
-            "clear": u"☽☀",
-            "cloudy": u"☁",
-            "flurries": u"☃",
-            "fog": u"☁",
-            "hazy": u"☁",
-            "mostlycloudy": u"☁",
-            "mostlysunny": u"☽☀",
-            "partlycloudy": u"☁",
-            "partlysunny": u"☽☀",
-            "rain": u"☂",
-            "sleet": u"☃",
-            "snow": u"☃",
-            "sunny": u"☽☀",
-            "tstorms": u"☂",
+            "chanceflurries": "☃",
+            "chancerain": "☂",
+            "chancesleet": "☃",
+            "chancesnow": "☃",
+            "chancetstorms": "☂",
+            "clear": "☽☀",
+            "cloudy": "☁",
+            "flurries": "☃",
+            "fog": "☁",
+            "hazy": "☁",
+            "mostlycloudy": "☁",
+            "mostlysunny": "☽☀",
+            "partlycloudy": "☁",
+            "partlysunny": "☽☀",
+            "rain": "☂",
+            "sleet": "☃",
+            "snow": "☃",
+            "sunny": "☽☀",
+            "tstorms": "☂",
         }
         try:
             icon = icons[condition]
             if len(icon) == 2:
                 lt_no_tz = local_time.rsplit(" ", 1)[0]
                 dt = datetime.strptime(lt_no_tz, "%a, %d %b %Y %H:%M:%S")
-                srise = datetime(year=dt.year, month=dt.month, day=dt.day,
-                                 hour=int(sun_phase["sunrise"]["hour"]),
-                                 minute=int(sun_phase["sunrise"]["minute"]))
-                sset = datetime(year=dt.year, month=dt.month, day=dt.day,
-                                hour=int(sun_phase["sunset"]["hour"]),
-                                minute=int(sun_phase["sunset"]["minute"]))
+                srise = datetime(
+                    year=dt.year,
+                    month=dt.month,
+                    day=dt.day,
+                    hour=int(sun_phase["sunrise"]["hour"]),
+                    minute=int(sun_phase["sunrise"]["minute"]),
+                )
+                sset = datetime(
+                    year=dt.year,
+                    month=dt.month,
+                    day=dt.day,
+                    hour=int(sun_phase["sunset"]["hour"]),
+                    minute=int(sun_phase["sunset"]["minute"]),
+                )
                 return icon[int(srise < dt < sset)]
             return icon
         except KeyError:
-            return u"?"
+            return "?"
 
     def format_ambiguous_result(self, res):
         """Format a message when there are multiple possible results."""
         results = []
         for place in res["response"]["results"]:
             extra = place["state" if place["state"] else "country"]
-            results.append("{0}, {1}".format(place["city"], extra))
+            results.append("{}, {}".format(place["city"], extra))
         if len(results) > 21:
             extra = len(results) - 20
             res = "; ".join(results[:20])
-            return "Did you mean: {0}... ({1} others)?".format(res, extra)
-        return "Did you mean: {0}?".format("; ".join(results))
+            return f"Did you mean: {res}... ({extra} others)?"
+        return "Did you mean: {}?".format("; ".join(results))

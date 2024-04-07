@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,8 +22,10 @@ from datetime import datetime, timedelta
 
 from earwigbot.tasks import Task
 
+
 class AfCDailyCats(Task):
     """A task to create daily categories for [[WP:AFC]]."""
+
     name = "afc_dailycats"
     number = 3
 
@@ -33,7 +33,9 @@ class AfCDailyCats(Task):
         cfg = self.config.tasks.get(self.name, {})
         self.prefix = cfg.get("prefix", "Category:AfC submissions by date/")
         self.content = cfg.get("content", "{{AfC submission category header}}")
-        default_summary = "Creating {0} category page for [[WP:AFC|Articles for creation]]."
+        default_summary = (
+            "Creating {0} category page for [[WP:AFC|Articles for creation]]."
+        )
         self.summary = self.make_summary(cfg.get("summary", default_summary))
 
     def run(self, **kwargs):
@@ -57,6 +59,6 @@ class AfCDailyCats(Task):
         page = self.site.get_page(self.prefix + suffix)
         if page.exists == page.PAGE_MISSING:
             page.edit(self.content, self.summary.format(word))
-            self.logger.info(u"Creating [[{0}]]".format(page.title))
+            self.logger.info(f"Creating [[{page.title}]]")
         else:
-            self.logger.debug(u"Skipping [[{0}]], exists".format(page.title))
+            self.logger.debug(f"Skipping [[{page.title}]], exists")

@@ -1,17 +1,16 @@
-# -*- coding: utf-8  -*-
-#
 # Public domain, 2013 Legoktm; 2013, 2018 Ben Kurtovic
-#
 
-from json import loads
 import re
-from urllib import quote
-from urllib2 import urlopen
+from json import loads
+from urllib.parse import quote
+from urllib.request import urlopen
 
 from earwigbot.commands import Command
 
+
 class UrbanDictionary(Command):
     """Get the definition of a word or phrase using Urban Dictionary."""
+
     name = "urban"
     commands = ["urban", "urbandictionary", "dct", "ud"]
 
@@ -34,7 +33,7 @@ class UrbanDictionary(Command):
         res = loads(query)
         results = res.get("list")
         if not results:
-            self.reply(data, 'Sorry, no results found.')
+            self.reply(data, "Sorry, no results found.")
             return
 
         result = results[0]
@@ -44,9 +43,10 @@ class UrbanDictionary(Command):
         if definition and definition[-1] not in (".", "!", "?"):
             definition += "."
 
-        msg = "{0} \x02Example\x0F: {1} {2}".format(
-            definition.encode("utf8"), example.encode("utf8"), url)
+        msg = "{} \x02Example\x0f: {} {}".format(
+            definition.encode("utf8"), example.encode("utf8"), url
+        )
         if self._normalize_term(result["word"]) != self._normalize_term(arg):
-            msg = "\x02{0}\x0F: {1}".format(result["word"].encode("utf8"), msg)
+            msg = "\x02{}\x0f: {}".format(result["word"].encode("utf8"), msg)
 
         self.reply(data, msg)

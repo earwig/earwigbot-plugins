@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2021 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,14 +19,16 @@
 # SOFTWARE.
 
 import base64
-import cPickle as pickle
+import pickle
 import re
 
 from earwigbot.commands import Command
 from earwigbot.config.permissions import User
 
+
 class PartWhen(Command):
     """Ask the bot to part the channel when a condition is met."""
+
     name = "partwhen"
     commands = ["partwhen", "unpartwhen"]
     hooks = ["join", "msg"]
@@ -67,54 +67,74 @@ class PartWhen(Command):
             if self._conds.get(channel):
                 del self._conds[channel]
                 self._save_conditions()
-                self.reply(data, "Cleared part conditions for {0}.".format(
-                    "this channel" if channel == data.chan else channel))
+                self.reply(
+                    data,
+                    "Cleared part conditions for {}.".format(
+                        "this channel" if channel == data.chan else channel
+                    ),
+                )
             else:
                 self.reply(data, "No part conditions set.")
             return
 
         if not args:
             conds = self._conds.get(channel, {})
-            existing = "; ".join("{0} {1}".format(cond, ", ".join(str(user) for user in users))
-                                 for cond, users in conds.iteritems())
+            existing = "; ".join(
+                "{} {}".format(cond, ", ".join(str(user) for user in users))
+                for cond, users in conds.iteritems()
+            )
             if existing:
-                status = "Current part conditions: {0}.".format(existing)
+                status = f"Current part conditions: {existing}."
             else:
-                status = "No part conditions set for {0}.".format(
-                    "this channel" if channel == data.chan else channel)
-            self.reply(data, "{0} Usage: !{1} [<channel>] <event> <args>...".format(
-                status, data.command))
+                status = "No part conditions set for {}.".format(
+                    "this channel" if channel == data.chan else channel
+                )
+            self.reply(
+                data,
+                f"{status} Usage: !{data.command} [<channel>] <event> <args>...",
+            )
             return
 
         event = args[0]
         args = args[1:]
         if event == "join":
             if not args:
-                self.reply(data, "Join event requires an argument for the user joining, "
-                                 "in nick!ident@host syntax.")
+                self.reply(
+                    data,
+                    "Join event requires an argument for the user joining, "
+                    "in nick!ident@host syntax.",
+                )
                 return
             cond = args[0]
             match = re.match(r"(.*?)!(.*?)@(.*?)$", cond)
             if not match:
-                self.reply(data, "User join pattern is invalid; should use "
-                                 "nick!ident@host syntax.")
+                self.reply(
+                    data,
+                    "User join pattern is invalid; should use "
+                    "nick!ident@host syntax.",
+                )
                 return
             conds = self._conds.setdefault(channel, {}).setdefault("join", [])
             conds.append(User(match.group(1), match.group(2), match.group(3)))
             self._save_conditions()
-            self.reply(data, "Okay, I will leave {0} when {1} joins.".format(
-                "the channel" if channel == data.chan else channel, cond))
+            self.reply(
+                data,
+                "Okay, I will leave {} when {} joins.".format(
+                    "the channel" if channel == data.chan else channel, cond
+                ),
+            )
         else:
-            self.reply(data, "Unknown event: {0} (valid events: join).".format(event))
+            self.reply(data, f"Unknown event: {event} (valid events: join).")
 
     def _handle_join(self, data):
         user = User(data.nick, data.ident, data.host)
         conds = self._conds.get(data.chan, {}).get("join", {})
         for cond in conds:
             if user in cond:
-                self.logger.info("Parting {0} because {1} met join condition {2}".format(
-                    data.chan, str(user), str(cond)))
-                self.part(data.chan, "Requested to leave when {0} joined".format(data.nick))
+                self.logger.info(
+                    f"Parting {data.chan} because {str(user)} met join condition {str(cond)}"
+                )
+                self.part(data.chan, f"Requested to leave when {data.nick} joined")
                 break
 
     def _load_conditions(self):

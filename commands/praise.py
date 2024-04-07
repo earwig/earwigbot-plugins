@@ -1,5 +1,3 @@
-# -*- coding: utf-8  -*-
-#
 # Copyright (C) 2009-2014 Ben Kurtovic <ben.kurtovic@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,8 +20,10 @@
 
 from earwigbot.commands import Command
 
+
 class Praise(Command):
     """Praise people!"""
+
     name = "praise"
 
     def setup(self):
